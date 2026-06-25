@@ -1,0 +1,105 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+  --bg: #eef4f2;
+  --paper: #f8fbf7;
+  --surface: #ffffff;
+  --ink: #11253f;
+  --muted: #667488;
+  --line: rgba(17, 37, 63, 0.12);
+  --blue: #1261a6;
+  --red: #da291c;
+  --cyan: #55c7d9;
+  --green: #b7d969;
+  --gold: #f5c542;
+  --shadow: 0 22px 60px rgba(17, 37, 63, 0.12);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background:
+    linear-gradient(90deg, rgba(18, 97, 166, 0.05) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(18, 97, 166, 0.045) 1px, transparent 1px),
+    linear-gradient(180deg, #f8fbf7 0%, #eef4f2 48%, #e8efed 100%);
+  background-size: 44px 44px, 44px 44px, 100% 100%;
+  color: var(--ink);
+  font-family: "Inter", "Avenir Next", "Segoe UI", Arial, sans-serif;
+}
+
+h1,
+h2,
+h3,
+.font-display {
+  font-family: "Space Grotesk", "Avenir Next", "Segoe UI", Arial, sans-serif;
+}
+
+.font-utility {
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+}
+
+* {
+  border-color: var(--line);
+}
+
+*:focus-visible {
+  outline: 3px solid rgba(18, 97, 166, 0.28);
+  outline-offset: 3px;
+}
+
+::selection {
+  background: rgba(85, 199, 217, 0.28);
+}
+
+.city-card {
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(248, 251, 247, 0.92)),
+    repeating-linear-gradient(90deg, transparent 0, transparent 26px, rgba(17, 37, 63, 0.025) 26px, rgba(17, 37, 63, 0.025) 27px);
+  box-shadow: var(--shadow);
+}
+
+.chat-shell {
+  border: 1px solid var(--line);
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: 0 24px 80px rgba(17, 37, 63, 0.13);
+}
+
+.routing-rail {
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.08) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08) 1px, transparent 1px),
+    linear-gradient(180deg, #11253f 0%, #173553 100%);
+  background-size: 28px 28px, 28px 28px, 100% 100%;
+}
+
+.city-map {
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.14) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.14) 1px, transparent 1px),
+    radial-gradient(circle at 24% 32%, rgba(85, 199, 217, 0.5), transparent 8rem),
+    radial-gradient(circle at 70% 54%, rgba(183, 217, 105, 0.35), transparent 9rem);
+  background-size: 38px 38px, 38px 38px, 100% 100%, 100% 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -1,0 +1,85 @@
+import { BuildRecipe } from "../types";
+
+export const buildCatalog: BuildRecipe[] = [
+  {
+    id: "street-kart",
+    name: "Street Kart",
+    summary: "A tiny speedster with exposed wheels and a low racing stance.",
+    difficulty: "Easy",
+    buildTime: "10 min",
+    theme: "Vehicle",
+    requirements: {
+      plate_2x4_red: 2,
+      brick_2x4_blue: 1,
+      tile_1x2_black: 2,
+      wheel_small: 4,
+    },
+    steps: [
+      "Place two red 2x4 plates side by side to create the base.",
+      "Center one blue 2x4 brick on top to make the cockpit body.",
+      "Snap two black tiles across the back edge to smooth the tail.",
+      "Attach two small wheels on each side for a balanced four-wheel setup.",
+      "Press all connections tight and your kart is ready to race.",
+    ],
+  },
+  {
+    id: "garden-hut",
+    name: "Garden Hut",
+    summary: "A simple cabin with a sloped roof and front window.",
+    difficulty: "Easy",
+    buildTime: "12 min",
+    theme: "Building",
+    requirements: {
+      brick_2x4_blue: 2,
+      brick_2x2_yellow: 4,
+      slope_2x2_green: 2,
+      window_1x2_clear: 1,
+      plate_2x4_red: 1,
+    },
+    steps: [
+      "Start with one red 2x4 plate as the floor.",
+      "Stack two yellow 2x2 bricks on each side to form short walls.",
+      "Place the clear window between the front wall bricks.",
+      "Add two blue 2x4 bricks across the top to lock the walls together.",
+      "Finish with two green slopes to create a pitched roof.",
+    ],
+  },
+  {
+    id: "park-bench",
+    name: "Park Bench",
+    summary: "A compact scene accessory that works well beside other mini builds.",
+    difficulty: "Beginner",
+    buildTime: "6 min",
+    theme: "Scene",
+    requirements: {
+      brick_2x2_yellow: 2,
+      tile_1x2_black: 2,
+      plate_2x4_red: 1,
+    },
+    steps: [
+      "Lay down one red plate as the footprint.",
+      "Use the two yellow 2x2 bricks as the bench supports.",
+      "Bridge the supports with two black tiles to create the seat and back.",
+      "Adjust spacing until the bench sits evenly on the plate.",
+    ],
+  },
+  {
+    id: "micro-tree-frog",
+    name: "Micro Tree Frog",
+    summary: "A playful little creature with a chunky body and angled back.",
+    difficulty: "Medium",
+    buildTime: "8 min",
+    theme: "Creature",
+    requirements: {
+      brick_2x2_yellow: 2,
+      slope_2x2_green: 3,
+      tile_1x2_black: 1,
+    },
+    steps: [
+      "Stack two yellow 2x2 bricks to form the frog body.",
+      "Cap the top and back with green slopes to shape the head and spine.",
+      "Use the final green slope on the rear to create a crouched pose.",
+      "Place the black tile at the front for a smooth face detail.",
+    ],
+  },
+];
