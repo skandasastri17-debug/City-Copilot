@@ -223,7 +223,7 @@ export function ChatInput({ value, onChange, onSubmit }: { value: string; onChan
         event.preventDefault();
         onSubmit();
       }}
-      className="rounded-[28px] border border-white/10 bg-[#242424] p-2 shadow-[0_20px_70px_rgba(0,0,0,0.34)]"
+      className="rounded-[28px] border border-white/12 bg-[#222] p-2 shadow-[0_20px_70px_rgba(0,0,0,0.34)]"
     >
       <label className="sr-only" htmlFor="city-request">
         Describe your city request
@@ -240,13 +240,13 @@ export function ChatInput({ value, onChange, onSubmit }: { value: string; onChan
           rows={2}
           className="min-h-[52px] flex-1 resize-none border-0 bg-transparent px-2 py-3 text-base text-white outline-none placeholder:text-white/42 focus:ring-0 sm:min-h-0"
         />
-        <span className="hidden items-center gap-2 rounded-full px-3 py-2 text-sm font-semibold text-white/42 md:flex">
-          Instant
+        <span className="hidden items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-sm font-semibold text-white/46 md:flex">
+          Toronto
         </span>
         <button type="button" className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-full text-white/74 transition hover:bg-white/10 md:flex" aria-label="Voice input">
           <Mic size={20} aria-hidden="true" />
         </button>
-        <button type="submit" className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white text-black transition hover:scale-105" aria-label="Ask Copilot">
+        <button type="submit" className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#da291c] text-white transition hover:scale-105" aria-label="Ask Copilot">
           <Send size={19} aria-hidden="true" />
         </button>
       </div>
@@ -295,10 +295,12 @@ export function AssistantWorkspace() {
   }
 
   return (
-    <main className="min-h-[calc(100vh-57px)] bg-black text-white lg:min-h-screen">
+    <main className="toronto-chat-canvas min-h-[calc(100vh-57px)] bg-black text-white lg:min-h-screen">
       {!hasAsked ? (
         <section className="mx-auto flex min-h-[calc(100vh-57px)] max-w-5xl flex-col items-center justify-center px-4 pb-20 lg:min-h-screen">
+          <p className="mb-4 rounded-full border border-[#da291c]/35 bg-[#da291c]/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-white/70">City of Toronto inspired</p>
           <h1 className="text-center text-3xl font-normal tracking-[-0.03em] text-white sm:text-4xl">Ready when you are.</h1>
+          <p className="mt-3 max-w-xl text-center text-sm leading-6 text-white/48">Ask about services, reports, resources, or neighborhood improvements.</p>
           <div className="mt-10 w-full max-w-3xl">
             <ChatInput value={input} onChange={setInput} onSubmit={submit} />
           </div>

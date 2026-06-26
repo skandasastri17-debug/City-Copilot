@@ -10,7 +10,7 @@
   --ink: #f4f4f4;
   --muted: #a3a3a3;
   --line: rgba(255, 255, 255, 0.12);
-  --blue: #1261a6;
+  --blue: #0067a0;
   --red: #da291c;
   --cyan: #55c7d9;
   --green: #b7d969;
@@ -63,11 +63,21 @@ h3,
   background: #000;
 }
 
+.toronto-chat-canvas {
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    radial-gradient(circle at 18% 22%, rgba(218, 41, 28, 0.18), transparent 18rem),
+    radial-gradient(circle at 82% 18%, rgba(0, 103, 160, 0.18), transparent 20rem),
+    linear-gradient(180deg, #020202 0%, #000 100%);
+  background-size: 42px 42px, 42px 42px, 100% 100%, 100% 100%, 100% 100%;
+}
+
 .routing-rail {
   background:
     linear-gradient(90deg, rgba(255, 255, 255, 0.08) 1px, transparent 1px),
     linear-gradient(180deg, rgba(255, 255, 255, 0.08) 1px, transparent 1px),
-    linear-gradient(180deg, #11253f 0%, #173553 100%);
+    linear-gradient(180deg, #111 0%, #151515 48%, #061f31 100%);
   background-size: 28px 28px, 28px 28px, 100% 100%;
 }
 

@@ -11,7 +11,7 @@ const config: Config = {
           ink: "#11253f",
           muted: "#667488",
           line: "rgba(17, 37, 63, 0.12)",
-          blue: "#1261a6",
+          blue: "#0067A0",
           red: "#da291c",
           cyan: "#55c7d9",
           green: "#b7d969",
