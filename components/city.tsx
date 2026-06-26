@@ -16,7 +16,6 @@ import {
   Map,
   MapPin,
   MessageSquareText,
-  Mic,
   Plus,
   Search,
   Send,
@@ -243,9 +242,6 @@ export function ChatInput({ value, onChange, onSubmit }: { value: string; onChan
         <span className="hidden items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-sm font-semibold text-white/46 md:flex">
           Toronto
         </span>
-        <button type="button" className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-full text-white/74 transition hover:bg-white/10 md:flex" aria-label="Voice input">
-          <Mic size={20} aria-hidden="true" />
-        </button>
         <button type="submit" className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#da291c] text-white transition hover:scale-105" aria-label="Ask Copilot">
           <Send size={19} aria-hidden="true" />
         </button>
@@ -422,10 +418,10 @@ export function CopilotResponseCard({
           </h3>
           <div className="mt-4 grid gap-2">
             {result.suggestedActions.map((action) => (
-              <button key={action} className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-left text-sm font-bold text-white/82 transition hover:border-white/20 hover:bg-white/10">
+              <Link key={action} href={actionHref(action)} className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-left text-sm font-bold text-white/82 transition hover:border-white/20 hover:bg-white/10">
                 {action}
                 <ArrowRight size={16} aria-hidden="true" />
-              </button>
+              </Link>
             ))}
           </div>
         </div>
@@ -509,6 +505,13 @@ function clearAnswerFor(result: CopilotResult) {
   }
 
   return `Yes. This should be treated as a ${result.report.priority.toLowerCase()}-priority ${result.category.toLowerCase()} request and routed to ${result.report.department}.`;
+}
+
+function actionHref(action: string) {
+  const lower = action.toLowerCase();
+  if (lower.includes("resource") || lower.includes("eligibility") || lower.includes("contact")) return "/resources";
+  if (lower.includes("similar") || lower.includes("submit") || lower.includes("report")) return "/reports";
+  return "/";
 }
 
 function RailStep({ label, value, done = false }: { label: string; value: string; done?: boolean }) {
@@ -671,6 +674,8 @@ export function ReportsWorkspace() {
 
 export function ResourceCard({ resource }: { resource: CityResource }) {
   const Icon = resource.icon;
+  const [saved, setSaved] = useState(false);
+
   return (
     <article className="city-card flex h-full flex-col p-5">
       <div className="flex items-start justify-between gap-3">
@@ -691,8 +696,13 @@ export function ResourceCard({ resource }: { resource: CityResource }) {
           <span key={tag} className="rounded-full bg-civic-paper px-3 py-1 text-xs font-bold text-civic-muted">{tag}</span>
         ))}
       </div>
-      <button className="mt-auto inline-flex items-center justify-center gap-2 rounded-2xl border border-civic-line bg-white px-4 py-3 text-sm font-extrabold text-civic-ink transition hover:border-civic-blue/35">
-        Save Resource <Plus size={16} aria-hidden="true" />
+      <button
+        onClick={() => setSaved((current) => !current)}
+        className={`mt-auto inline-flex items-center justify-center gap-2 rounded-2xl border px-4 py-3 text-sm font-extrabold transition ${
+          saved ? "border-civic-green/40 bg-civic-green/20 text-white" : "border-white/10 bg-white/5 text-white/86 hover:border-white/20 hover:bg-white/10"
+        }`}
+      >
+        {saved ? "Saved" : "Save Resource"} <Plus className={saved ? "rotate-45" : ""} size={16} aria-hidden="true" />
       </button>
     </article>
   );

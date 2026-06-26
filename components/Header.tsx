@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Bot, Clock3, Folder, Grid2X2, Info, Library, MoreHorizontal, PanelLeft, Search, SquarePen } from "lucide-react";
+import { Bot, Clock3, Grid2X2, Info, Library, MoreHorizontal, Search, SquarePen } from "lucide-react";
 
 const primaryItems = [
   ["New chat", "/", SquarePen],
@@ -9,8 +9,6 @@ const primaryItems = [
   ["About", "/about", Info],
   ["More", "/about", MoreHorizontal]
 ] as const;
-
-const projects = ["Toronto 311", "Resources", "Neighborhood ideas", "Live data"];
 
 export function Header() {
   return (
@@ -26,9 +24,9 @@ export function Header() {
               <span className="block text-xs font-medium text-white/46">Toronto service desk</span>
             </span>
           </Link>
-          <button className="rounded-lg p-2 text-white/70 transition hover:bg-white/10 hover:text-white" aria-label="Collapse sidebar">
-            <PanelLeft size={19} aria-hidden="true" />
-          </button>
+          <Link href="/about" className="rounded-lg p-2 text-white/70 transition hover:bg-white/10 hover:text-white" aria-label="About City Copilot">
+            <Info size={19} aria-hidden="true" />
+          </Link>
         </div>
 
         <nav className="space-y-1" aria-label="Main navigation">
@@ -43,18 +41,6 @@ export function Header() {
             </Link>
           ))}
         </nav>
-
-        <div className="mt-8">
-          <p className="px-3 text-sm font-bold text-white">Projects</p>
-          <div className="mt-3 space-y-1">
-            {projects.map((item) => (
-              <Link key={item} href={item === "Resources" ? "/resources" : "/"} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-white/78 transition hover:bg-white/10 hover:text-white">
-                <Folder size={18} aria-hidden="true" />
-                {item}
-              </Link>
-            ))}
-          </div>
-        </div>
 
         <div className="mt-8 min-h-0 flex-1 overflow-hidden">
           <p className="px-3 text-sm font-bold text-white">Workspace</p>
