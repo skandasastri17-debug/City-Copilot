@@ -67,8 +67,7 @@ async function searchTorontoOpenData(query: string, category: CityCategory, limi
   url.searchParams.set("rows", String(limit));
 
   const response = await fetch(url, {
-    headers: { Accept: "application/json" },
-    next: { revalidate: 60 * 60 }
+    headers: { Accept: "application/json" }
   });
 
   if (!response.ok) {
