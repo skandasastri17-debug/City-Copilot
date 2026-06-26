@@ -4,7 +4,12 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "City Copilot",
-  description: "A Toronto civic-tech assistant that turns resident needs into clear city action."
+  description: "A Toronto civic-tech assistant that turns resident needs into clear city action.",
+  icons: {
+    icon: "/favicon.png",
+    shortcut: "/favicon.png",
+    apple: "/favicon.png"
+  }
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
