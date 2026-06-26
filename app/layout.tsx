@@ -17,7 +17,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="en">
       <body className="min-h-screen antialiased">
         <Header />
-        {children}
+        <div className="lg:pl-[280px]">{children}</div>
       </body>
     </html>
   );

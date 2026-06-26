@@ -16,6 +16,7 @@ import {
   Map,
   MapPin,
   MessageSquareText,
+  Mic,
   Plus,
   Search,
   Send,
@@ -209,7 +210,7 @@ export function HowItWorks() {
 
 export function DemoPromptButton({ prompt, onSelect }: { prompt: string; onSelect: (prompt: string) => void }) {
   return (
-    <button onClick={() => onSelect(prompt)} className="rounded-full border border-civic-line bg-white px-4 py-2 text-left text-sm font-semibold text-civic-ink shadow-sm transition hover:border-civic-blue/40 hover:text-civic-blue">
+    <button onClick={() => onSelect(prompt)} className="rounded-full border border-white/12 bg-transparent px-4 py-2 text-left text-sm font-semibold text-white/62 transition hover:border-white/24 hover:bg-white/5 hover:text-white">
       {prompt}
     </button>
   );
@@ -222,22 +223,31 @@ export function ChatInput({ value, onChange, onSubmit }: { value: string; onChan
         event.preventDefault();
         onSubmit();
       }}
-      className="rounded-[24px] border border-civic-line bg-white p-2 shadow-sm"
+      className="rounded-[28px] border border-white/10 bg-[#242424] p-2 shadow-[0_20px_70px_rgba(0,0,0,0.34)]"
     >
       <label className="sr-only" htmlFor="city-request">
         Describe your city request
       </label>
-      <div className="flex flex-col gap-2 sm:flex-row">
+      <div className="flex items-center gap-2">
+        <span className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-full text-white/78 sm:flex">
+          <Plus size={25} aria-hidden="true" />
+        </span>
         <textarea
           id="city-request"
           value={value}
           onChange={(event) => onChange(event.target.value)}
-          placeholder="Tell City Copilot what is happening in Toronto..."
+          placeholder="Ask about a Toronto city service"
           rows={2}
-          className="min-h-[72px] flex-1 resize-none rounded-[18px] border-0 bg-civic-paper px-4 py-3 text-base text-civic-ink outline-none placeholder:text-civic-muted/70 focus:ring-2 focus:ring-civic-blue/25 sm:min-h-0"
+          className="min-h-[52px] flex-1 resize-none border-0 bg-transparent px-2 py-3 text-base text-white outline-none placeholder:text-white/42 focus:ring-0 sm:min-h-0"
         />
-        <button type="submit" className="inline-flex items-center justify-center gap-2 rounded-[18px] bg-civic-ink px-5 py-3 text-sm font-extrabold text-white transition hover:-translate-y-0.5">
-          Ask Copilot <Send size={17} aria-hidden="true" />
+        <span className="hidden items-center gap-2 rounded-full px-3 py-2 text-sm font-semibold text-white/42 md:flex">
+          Instant
+        </span>
+        <button type="button" className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-full text-white/74 transition hover:bg-white/10 md:flex" aria-label="Voice input">
+          <Mic size={20} aria-hidden="true" />
+        </button>
+        <button type="submit" className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white text-black transition hover:scale-105" aria-label="Ask Copilot">
+          <Send size={19} aria-hidden="true" />
         </button>
       </div>
     </form>
@@ -245,11 +255,12 @@ export function ChatInput({ value, onChange, onSubmit }: { value: string; onChan
 }
 
 export function AssistantWorkspace() {
-  const [input, setInput] = useState(examplePrompts[0]);
-  const [result, setResult] = useState<CopilotResult>(() => classifyRequest(examplePrompts[0]));
-  const [userPrompt, setUserPrompt] = useState(examplePrompts[0]);
+  const [input, setInput] = useState("");
+  const [result, setResult] = useState<CopilotResult | null>(null);
+  const [userPrompt, setUserPrompt] = useState("");
   const [liveData, setLiveData] = useState<LiveDataResult | null>(null);
   const [isSearchingLiveData, setIsSearchingLiveData] = useState(false);
+  const hasAsked = Boolean(result && userPrompt);
 
   function submit() {
     if (!input.trim()) return;
@@ -284,77 +295,36 @@ export function AssistantWorkspace() {
   }
 
   return (
-    <main className="mx-auto grid min-h-[calc(100vh-69px)] max-w-[1440px] gap-5 px-3 py-4 sm:px-5 lg:grid-cols-[minmax(0,1fr)_320px] lg:px-6">
-      <section className="chat-shell flex min-h-[calc(100vh-101px)] flex-col overflow-hidden">
-        <div className="border-b border-civic-line bg-white/88 px-5 py-4 backdrop-blur">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="font-utility text-[11px] font-bold uppercase text-civic-muted">City Copilot</p>
-              <h1 className="mt-1 text-2xl font-black tracking-[-0.03em] text-civic-ink sm:text-3xl">What can I help with in Toronto?</h1>
-            </div>
-            <div className="flex items-center gap-2 rounded-full border border-civic-line bg-civic-paper px-3 py-1 text-xs font-bold text-civic-muted">
-              <span className="h-2 w-2 rounded-full bg-civic-green" />
-              Mock AI mode
-            </div>
+    <main className="min-h-[calc(100vh-57px)] bg-black text-white lg:min-h-screen">
+      {!hasAsked ? (
+        <section className="mx-auto flex min-h-[calc(100vh-57px)] max-w-5xl flex-col items-center justify-center px-4 pb-20 lg:min-h-screen">
+          <h1 className="text-center text-3xl font-normal tracking-[-0.03em] text-white sm:text-4xl">Ready when you are.</h1>
+          <div className="mt-10 w-full max-w-3xl">
+            <ChatInput value={input} onChange={setInput} onSubmit={submit} />
           </div>
-        </div>
-
-        <div className="border-b border-civic-line bg-white/72 p-3">
-          <ChatInput value={input} onChange={setInput} onSubmit={submit} />
-        </div>
-
-        <div className="flex-1 space-y-6 overflow-y-auto bg-[linear-gradient(180deg,rgba(255,255,255,0.62),rgba(248,251,247,0.88))] px-3 py-5 sm:px-6">
-          <ChatBubble role="assistant">
-            <p className="text-base font-semibold leading-7 text-civic-ink">
-              Hi, I am City Copilot. Type a city issue, resource need, or neighborhood improvement above. I will answer clearly, route it, and draft the next step.
-            </p>
-            <div className="mt-4 flex flex-wrap gap-2">
-              {examplePrompts.map((prompt) => (
-                <DemoPromptButton key={prompt} prompt={prompt} onSelect={setInput} />
-              ))}
-            </div>
-          </ChatBubble>
-
-          <ChatBubble role="user">
-            <p className="text-base font-semibold leading-7 text-civic-ink">{userPrompt}</p>
-          </ChatBubble>
-
-          <ChatBubble role="assistant" wide>
-            <CopilotResponseCard result={result} liveData={liveData} isSearchingLiveData={isSearchingLiveData} />
-          </ChatBubble>
-        </div>
-      </section>
-
-      <aside className="hidden space-y-4 lg:block">
-        <div className="city-card p-5">
-          <p className="font-utility text-[11px] font-bold uppercase text-civic-muted">Toronto context</p>
-          <div className="mt-4 grid gap-3">
-            {citySignals.slice(0, 5).map((signal) => (
-              <div key={signal.label} className="flex items-center justify-between gap-3 border-b border-civic-line pb-3 last:border-0 last:pb-0">
-                <span className="inline-flex items-center gap-2 text-sm font-semibold text-civic-ink">
-                  <signal.icon className="text-civic-blue" size={16} aria-hidden="true" />
-                  {signal.label}
-                </span>
-                <span className="text-sm text-civic-muted">{signal.value}</span>
-              </div>
+          <div className="mt-8 flex flex-wrap justify-center gap-3">
+            {examplePrompts.slice(0, 4).map((prompt) => (
+              <DemoPromptButton key={prompt} prompt={prompt} onSelect={setInput} />
             ))}
           </div>
-        </div>
-        <div className="city-card p-5">
-          <p className="font-utility text-[11px] font-bold uppercase text-civic-muted">What I can do</p>
-          <div className="mt-4 space-y-3 text-sm leading-6 text-civic-muted">
-            <p><span className="font-bold text-civic-ink">Report issues:</span> potholes, floods, lights, sidewalks, garbage.</p>
-            <p><span className="font-bold text-civic-ink">Find resources:</span> programs, cooling centres, subsidies, senior supports.</p>
-            <p><span className="font-bold text-civic-ink">Improve areas:</span> safer crossings, shade, bike lanes, transit reliability.</p>
+        </section>
+      ) : (
+        <section className="mx-auto flex min-h-screen max-w-4xl flex-col px-4 py-8">
+          <div className="flex-1 space-y-8">
+            <ChatBubble role="user">
+              <p className="text-base font-medium leading-7 text-white">{userPrompt}</p>
+            </ChatBubble>
+            {result ? (
+              <ChatBubble role="assistant" wide>
+                <CopilotResponseCard result={result} liveData={liveData} isSearchingLiveData={isSearchingLiveData} />
+              </ChatBubble>
+            ) : null}
           </div>
-        </div>
-        <div className="city-card p-5">
-          <p className="font-utility text-[11px] font-bold uppercase text-civic-muted">Live data path</p>
-          <p className="mt-4 text-sm leading-6 text-civic-muted">
-            Mock data is used now. The next version can query Toronto Open Data, maps, weather alerts, libraries, shelters, parks, and 311-style datasets before answering.
-          </p>
-        </div>
-      </aside>
+          <div className="sticky bottom-4 mt-8">
+            <ChatInput value={input} onChange={setInput} onSubmit={submit} />
+          </div>
+        </section>
+      )}
     </main>
   );
 }
@@ -391,18 +361,18 @@ export function CopilotResponseCard({
 }) {
   return (
     <section className="space-y-4">
-      <div className="rounded-[26px] border border-civic-line bg-white p-5 shadow-sm">
+      <div className="rounded-[26px] border border-white/10 bg-[#171717] p-5 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="font-utility text-[11px] font-bold uppercase text-civic-muted">Copilot answer</p>
-            <h2 className="mt-1 text-2xl font-black tracking-[-0.03em] text-civic-ink">Route this to {result.report.department}.</h2>
+            <p className="font-utility text-[11px] font-bold uppercase text-white/45">Copilot answer</p>
+            <h2 className="mt-1 text-2xl font-black tracking-[-0.03em] text-white">Route this to {result.report.department}.</h2>
           </div>
-          <span className="rounded-full border border-civic-line bg-civic-paper px-3 py-1 text-xs font-bold text-civic-muted">{result.confidence}% confident</span>
+          <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-bold text-white/58">{result.confidence}% confident</span>
         </div>
-        <p className="mt-4 rounded-2xl border border-civic-blue/20 bg-civic-blue/10 p-4 text-lg font-black leading-8 tracking-[-0.02em] text-civic-ink">
+        <p className="mt-4 rounded-2xl border border-civic-cyan/20 bg-civic-cyan/10 p-4 text-lg font-black leading-8 tracking-[-0.02em] text-white">
           {clearAnswerFor(result)}
         </p>
-        <p className="mt-4 max-w-3xl text-base leading-7 text-civic-muted">{result.summary}</p>
+        <p className="mt-4 max-w-3xl text-base leading-7 text-white/62">{result.summary}</p>
         <div className="mt-5 grid gap-3 md:grid-cols-4">
           <AnswerFact label="Type" value={result.category} />
           <AnswerFact label="Priority" value={result.report.priority} />
@@ -411,7 +381,7 @@ export function CopilotResponseCard({
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-[26px] border border-civic-line bg-white shadow-sm">
+      <div className="overflow-hidden rounded-[26px] border border-white/10 bg-[#171717] shadow-sm">
         <div className="grid md:grid-cols-[190px_1fr]">
           <div className="routing-rail border-b border-civic-line p-5 text-white md:border-b-0 md:border-r">
             <p className="font-utility text-[11px] font-bold uppercase text-white/62">311 routing</p>
@@ -427,9 +397,9 @@ export function CopilotResponseCard({
                 <CategoryBadge category={result.category} />
                 <PriorityBadge priority={result.report.priority} />
               </div>
-              <span className="font-utility text-[11px] font-bold uppercase text-civic-muted">Draft report</span>
+              <span className="font-utility text-[11px] font-bold uppercase text-white/45">Draft report</span>
             </div>
-            <h3 className="mt-4 text-2xl font-black tracking-[-0.03em] text-civic-ink">{result.report.title}</h3>
+            <h3 className="mt-4 text-2xl font-black tracking-[-0.03em] text-white">{result.report.title}</h3>
             <div className="mt-5 grid gap-3 sm:grid-cols-2">
               <ReportField label="Suggested department" value={result.report.department} />
               <ReportField label="Location needed" value={result.report.location} />
@@ -443,31 +413,31 @@ export function CopilotResponseCard({
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <div className="rounded-[26px] border border-civic-line bg-white p-5 shadow-sm">
-          <h3 className="flex items-center gap-2 text-lg font-extrabold text-civic-ink">
+        <div className="rounded-[26px] border border-white/10 bg-[#171717] p-5 shadow-sm">
+          <h3 className="flex items-center gap-2 text-lg font-extrabold text-white">
             <Workflow size={18} aria-hidden="true" />
             Suggested actions
           </h3>
           <div className="mt-4 grid gap-2">
             {result.suggestedActions.map((action) => (
-              <button key={action} className="flex items-center justify-between rounded-2xl border border-civic-line bg-white px-4 py-3 text-left text-sm font-bold text-civic-ink transition hover:border-civic-blue/35">
+              <button key={action} className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-left text-sm font-bold text-white/82 transition hover:border-white/20 hover:bg-white/10">
                 {action}
                 <ArrowRight size={16} aria-hidden="true" />
               </button>
             ))}
           </div>
         </div>
-        <div className="rounded-[26px] border border-civic-line bg-white p-5 shadow-sm">
-          <h3 className="flex items-center gap-2 text-lg font-extrabold text-civic-ink">
+        <div className="rounded-[26px] border border-white/10 bg-[#171717] p-5 shadow-sm">
+          <h3 className="flex items-center gap-2 text-lg font-extrabold text-white">
             <LocateFixed size={18} aria-hidden="true" />
             Similar nearby issues
           </h3>
           <div className="mt-4 space-y-3">
             {result.similarIssues.length ? (
               result.similarIssues.map((issue) => (
-                <div key={issue.id} className="rounded-2xl border border-civic-line bg-white p-3">
-                  <p className="text-sm font-bold text-civic-ink">{issue.title}</p>
-                  <p className="mt-1 text-xs text-civic-muted">{issue.location}</p>
+                <div key={issue.id} className="rounded-2xl border border-white/10 bg-white/5 p-3">
+                  <p className="text-sm font-bold text-white/86">{issue.title}</p>
+                  <p className="mt-1 text-xs text-white/50">{issue.location}</p>
                 </div>
               ))
             ) : (
@@ -484,21 +454,21 @@ export function CopilotResponseCard({
 
 function LiveDataPanel({ liveData, isSearching }: { liveData?: LiveDataResult | null; isSearching: boolean }) {
   return (
-    <div className="rounded-[26px] border border-civic-line bg-white p-5 shadow-sm">
+    <div className="rounded-[26px] border border-white/10 bg-[#171717] p-5 shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="font-utility text-[11px] font-bold uppercase text-civic-muted">Live data leads</p>
-          <h3 className="mt-1 text-lg font-extrabold text-civic-ink">Datasets and resources that may support this answer</h3>
+          <p className="font-utility text-[11px] font-bold uppercase text-white/45">Live data leads</p>
+          <h3 className="mt-1 text-lg font-extrabold text-white">Datasets and resources that may support this answer</h3>
         </div>
         {isSearching ? (
-          <span className="rounded-full border border-civic-line bg-civic-paper px-3 py-1 text-xs font-bold text-civic-muted">Searching...</span>
+          <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-bold text-white/58">Searching...</span>
         ) : null}
       </div>
 
       {isSearching ? (
         <div className="mt-4 grid gap-3 md:grid-cols-2">
           {[1, 2].map((item) => (
-            <div key={item} className="h-28 animate-pulse rounded-2xl bg-civic-paper" />
+            <div key={item} className="h-28 animate-pulse rounded-2xl bg-white/5" />
           ))}
         </div>
       ) : liveData?.leads.length ? (
@@ -509,17 +479,17 @@ function LiveDataPanel({ liveData, isSearching }: { liveData?: LiveDataResult | 
               href={lead.url}
               target="_blank"
               rel="noreferrer"
-              className="rounded-2xl border border-civic-line bg-civic-paper p-4 transition hover:border-civic-blue/35 hover:bg-white"
+              className="rounded-2xl border border-white/10 bg-white/5 p-4 transition hover:border-white/20 hover:bg-white/10"
             >
-              <span className="rounded-full bg-white px-3 py-1 text-[11px] font-bold uppercase text-civic-muted">{lead.source}</span>
-              <p className="mt-3 text-sm font-extrabold leading-5 text-civic-ink">{lead.title}</p>
-              <p className="mt-2 text-sm leading-6 text-civic-muted">{lead.description}</p>
+              <span className="rounded-full bg-white/8 px-3 py-1 text-[11px] font-bold uppercase text-white/54">{lead.source}</span>
+              <p className="mt-3 text-sm font-extrabold leading-5 text-white/88">{lead.title}</p>
+              <p className="mt-2 text-sm leading-6 text-white/58">{lead.description}</p>
               {lead.formats?.length ? <p className="mt-3 text-xs font-bold text-civic-blue">Formats: {lead.formats.slice(0, 4).join(", ")}</p> : null}
             </a>
           ))}
         </div>
       ) : (
-        <p className="mt-4 rounded-2xl border border-civic-line bg-civic-paper p-4 text-sm leading-6 text-civic-muted">
+        <p className="mt-4 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm leading-6 text-white/58">
           {liveData?.error ?? "Ask Copilot a question to search live datasets and resource matches."}
         </p>
       )}
@@ -555,27 +525,27 @@ function RailStep({ label, value, done = false }: { label: string; value: string
 
 function AnswerFact({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-civic-line bg-civic-paper p-4">
-      <p className="text-xs font-bold uppercase text-civic-muted">{label}</p>
-      <p className="mt-1 text-base font-black tracking-[-0.02em] text-civic-ink">{value}</p>
+    <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+      <p className="text-xs font-bold uppercase text-white/45">{label}</p>
+      <p className="mt-1 text-base font-black tracking-[-0.02em] text-white">{value}</p>
     </div>
   );
 }
 
 function ReportField({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-civic-line bg-civic-paper p-4">
-      <p className="text-xs font-bold uppercase text-civic-muted">{label}</p>
-      <p className="mt-1 text-sm font-extrabold leading-6 text-civic-ink">{value}</p>
+    <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+      <p className="text-xs font-bold uppercase text-white/45">{label}</p>
+      <p className="mt-1 text-sm font-extrabold leading-6 text-white/86">{value}</p>
     </div>
   );
 }
 
 function ReadableBlock({ title, body }: { title: string; body: string }) {
   return (
-    <div className="rounded-2xl border border-civic-line bg-white p-4">
-      <p className="text-sm font-extrabold text-civic-ink">{title}</p>
-      <p className="mt-2 text-sm leading-7 text-civic-muted">{body}</p>
+    <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+      <p className="text-sm font-extrabold text-white">{title}</p>
+      <p className="mt-2 text-sm leading-7 text-white/58">{body}</p>
     </div>
   );
 }

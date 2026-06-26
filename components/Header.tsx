@@ -1,45 +1,91 @@
 import Link from "next/link";
-import { Building2, Menu } from "lucide-react";
+import { Bot, Clock3, Folder, Grid2X2, Info, Library, MoreHorizontal, PanelLeft, Search, SquarePen } from "lucide-react";
 
-const navItems = [
-  ["Assistant", "/assistant"],
-  ["Reports", "/reports"],
-  ["Resources", "/resources"],
-  ["About", "/about"]
-];
+const primaryItems = [
+  ["New chat", "/", SquarePen],
+  ["Search chats", "/", Search],
+  ["Library", "/resources", Library],
+  ["Reports", "/reports", Clock3],
+  ["About", "/about", Info],
+  ["More", "/about", MoreHorizontal]
+] as const;
+
+const projects = ["Toronto 311", "Resources", "Neighborhood ideas", "Live data"];
+const chats = ["Flooding near Queen", "Free coding classes", "Unsafe crosswalk", "Late bus report"];
 
 export function Header() {
   return (
-    <header className="sticky top-0 z-40 border-b border-civic-line bg-civic-paper/88 backdrop-blur-xl">
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
-        <Link href="/" className="flex min-w-0 items-center gap-3 text-civic-ink" aria-label="City Copilot home">
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-civic-ink text-white shadow-[0_16px_34px_rgba(17,37,63,0.22)]">
-            <Building2 aria-hidden="true" size={20} />
-          </span>
-          <span className="min-w-0">
-            <span className="block text-base font-black tracking-[-0.03em] sm:text-lg">City Copilot</span>
-            <span className="font-utility hidden text-[10px] font-bold uppercase text-civic-muted sm:block">Toronto service intelligence</span>
-          </span>
-        </Link>
-        <nav className="hidden items-center gap-2 text-sm font-bold text-civic-muted md:flex" aria-label="Main navigation">
-          {navItems.map(([label, href]) => (
-            <Link key={href} href={href} className="rounded-full px-3 py-2 transition hover:bg-white hover:text-civic-ink">
+    <>
+      <aside className="fixed inset-y-0 left-0 z-40 hidden w-[280px] flex-col border-r border-white/10 bg-[#050505] px-3 py-4 text-[#ececec] lg:flex">
+        <div className="mb-6 flex items-center justify-between px-3">
+          <Link href="/" className="flex items-center gap-2 text-lg font-bold tracking-[-0.02em]" aria-label="City Copilot home">
+            <Bot size={22} aria-hidden="true" />
+            City Copilot
+          </Link>
+          <button className="rounded-lg p-2 text-white/70 transition hover:bg-white/10 hover:text-white" aria-label="Collapse sidebar">
+            <PanelLeft size={19} aria-hidden="true" />
+          </button>
+        </div>
+
+        <nav className="space-y-1" aria-label="Main navigation">
+          {primaryItems.map(([label, href, Icon], index) => (
+            <Link
+              key={`${label}-${href}`}
+              href={href}
+              className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-white/82 transition hover:bg-white/10 hover:text-white ${index === 0 ? "bg-white/10 text-white" : ""}`}
+            >
+              <Icon size={19} aria-hidden="true" />
               {label}
             </Link>
           ))}
         </nav>
-        <div className="flex items-center gap-2">
-          <Link className="hidden rounded-full border border-civic-line bg-white px-4 py-2 text-sm font-bold text-civic-ink shadow-sm sm:inline-flex" href="/reports">
-            Demo reports
-          </Link>
-          <Link className="rounded-full bg-civic-red px-4 py-2 text-sm font-extrabold text-white shadow-[0_12px_26px_rgba(218,41,28,0.24)] transition hover:-translate-y-0.5" href="/assistant">
-            Try Copilot
-          </Link>
-          <button className="rounded-full border border-civic-line bg-white p-2 text-civic-ink md:hidden" aria-label="Open menu">
-            <Menu size={19} aria-hidden="true" />
-          </button>
+
+        <div className="mt-8">
+          <p className="px-3 text-sm font-bold text-white">Projects</p>
+          <div className="mt-3 space-y-1">
+            {projects.map((item) => (
+              <Link key={item} href={item === "Resources" ? "/resources" : "/"} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-white/78 transition hover:bg-white/10 hover:text-white">
+                <Folder size={18} aria-hidden="true" />
+                {item}
+              </Link>
+            ))}
+          </div>
         </div>
-      </div>
-    </header>
+
+        <div className="mt-8 min-h-0 flex-1 overflow-hidden">
+          <p className="px-3 text-sm font-bold text-white">Chats</p>
+          <div className="mt-3 space-y-1">
+            {chats.map((item) => (
+              <Link key={item} href="/" className="block truncate rounded-xl px-3 py-2.5 text-sm font-medium text-white/78 transition hover:bg-white/10 hover:text-white">
+                {item}
+              </Link>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-4 border-t border-white/10 pt-4">
+          <div className="flex items-center gap-3 rounded-xl px-3 py-2">
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-civic-blue text-xs font-black text-white">CC</span>
+            <span>
+              <span className="block text-sm font-semibold text-white">City Copilot</span>
+              <span className="block text-xs text-white/50">Toronto demo</span>
+            </span>
+            <Grid2X2 className="ml-auto text-white/58" size={17} aria-hidden="true" />
+          </div>
+        </div>
+      </aside>
+
+      <header className="sticky top-0 z-40 border-b border-white/10 bg-black/90 px-4 py-3 text-white backdrop-blur lg:hidden">
+        <div className="flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2 font-bold">
+            <Bot size={20} aria-hidden="true" />
+            City Copilot
+          </Link>
+          <Link href="/resources" className="rounded-full border border-white/15 px-3 py-1.5 text-sm text-white/80">
+            Resources
+          </Link>
+        </div>
+      </header>
+    </>
   );
 }

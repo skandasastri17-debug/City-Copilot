@@ -3,19 +3,19 @@
 @tailwind utilities;
 
 :root {
-  color-scheme: light;
-  --bg: #eef4f2;
-  --paper: #f8fbf7;
-  --surface: #ffffff;
-  --ink: #11253f;
-  --muted: #667488;
-  --line: rgba(17, 37, 63, 0.12);
+  color-scheme: dark;
+  --bg: #000000;
+  --paper: #202020;
+  --surface: #171717;
+  --ink: #f4f4f4;
+  --muted: #a3a3a3;
+  --line: rgba(255, 255, 255, 0.12);
   --blue: #1261a6;
   --red: #da291c;
   --cyan: #55c7d9;
   --green: #b7d969;
   --gold: #f5c542;
-  --shadow: 0 22px 60px rgba(17, 37, 63, 0.12);
+  --shadow: 0 22px 70px rgba(0, 0, 0, 0.32);
 }
 
 html {
@@ -23,11 +23,7 @@ html {
 }
 
 body {
-  background:
-    linear-gradient(90deg, rgba(18, 97, 166, 0.05) 1px, transparent 1px),
-    linear-gradient(180deg, rgba(18, 97, 166, 0.045) 1px, transparent 1px),
-    linear-gradient(180deg, #f8fbf7 0%, #eef4f2 48%, #e8efed 100%);
-  background-size: 44px 44px, 44px 44px, 100% 100%;
+  background: #000;
   color: var(--ink);
   font-family: "Inter", "Avenir Next", "Segoe UI", Arial, sans-serif;
 }
@@ -48,7 +44,7 @@ h3,
 }
 
 *:focus-visible {
-  outline: 3px solid rgba(18, 97, 166, 0.28);
+  outline: 3px solid rgba(85, 199, 217, 0.42);
   outline-offset: 3px;
 }
 
@@ -59,17 +55,12 @@ h3,
 .city-card {
   border: 1px solid var(--line);
   border-radius: 24px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(248, 251, 247, 0.92)),
-    repeating-linear-gradient(90deg, transparent 0, transparent 26px, rgba(17, 37, 63, 0.025) 26px, rgba(17, 37, 63, 0.025) 27px);
+  background: #151515;
   box-shadow: var(--shadow);
 }
 
 .chat-shell {
-  border: 1px solid var(--line);
-  border-radius: 28px;
-  background: rgba(255, 255, 255, 0.72);
-  box-shadow: 0 24px 80px rgba(17, 37, 63, 0.13);
+  background: #000;
 }
 
 .routing-rail {
