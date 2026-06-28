@@ -256,6 +256,8 @@ export function AssistantWorkspace() {
   const [userPrompt, setUserPrompt] = useState("");
   const [liveData, setLiveData] = useState<LiveDataResult | null>(null);
   const [isSearchingLiveData, setIsSearchingLiveData] = useState(false);
+  const [aiAnswer, setAiAnswer] = useState("");
+  const [answerMode, setAnswerMode] = useState<"ai" | "rules" | "">("");
   const hasAsked = Boolean(result && userPrompt);
 
   function submit() {
@@ -267,17 +269,35 @@ export function AssistantWorkspace() {
     setResult(nextResult);
     setIsSearchingLiveData(true);
     setLiveData(null);
+    setAiAnswer("");
+    setAnswerMode("");
 
-    fetch("/api/live-data", {
+    const savedSettings = readCopilotSettings();
+
+    fetch("/api/copilot", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ query, category: nextResult.category })
+      body: JSON.stringify({
+        query,
+        openaiKey: savedSettings.openaiKey,
+        model: savedSettings.openaiModel
+      })
     })
       .then((response) => {
-        if (!response.ok) throw new Error("Live data search failed");
-        return response.json() as Promise<LiveDataResult>;
+        if (!response.ok) throw new Error("Copilot answer failed");
+        return response.json() as Promise<{
+          mode: "ai" | "rules";
+          answer: string;
+          classification: CopilotResult;
+          liveData: LiveDataResult;
+        }>;
       })
-      .then(setLiveData)
+      .then((payload) => {
+        setResult(payload.classification);
+        setLiveData(payload.liveData);
+        setAiAnswer(payload.answer);
+        setAnswerMode(payload.mode);
+      })
       .catch(() =>
         setLiveData({
           query,
@@ -314,7 +334,7 @@ export function AssistantWorkspace() {
             </ChatBubble>
             {result ? (
               <ChatBubble role="assistant" wide>
-                <CopilotResponseCard result={result} liveData={liveData} isSearchingLiveData={isSearchingLiveData} />
+                <CopilotResponseCard result={result} liveData={liveData} isSearchingLiveData={isSearchingLiveData} aiAnswer={aiAnswer} answerMode={answerMode} />
               </ChatBubble>
             ) : null}
           </div>
@@ -351,11 +371,15 @@ function ChatBubble({ role, children, wide = false }: { role: "assistant" | "use
 export function CopilotResponseCard({
   result,
   liveData,
-  isSearchingLiveData = false
+  isSearchingLiveData = false,
+  aiAnswer = "",
+  answerMode = ""
 }: {
   result: CopilotResult;
   liveData?: LiveDataResult | null;
   isSearchingLiveData?: boolean;
+  aiAnswer?: string;
+  answerMode?: "ai" | "rules" | "";
 }) {
   return (
     <section className="space-y-4">
@@ -365,11 +389,16 @@ export function CopilotResponseCard({
             <p className="font-utility text-[11px] font-bold uppercase text-white/45">Copilot answer</p>
             <h2 className="mt-1 text-2xl font-black tracking-[-0.03em] text-white">Route this to {result.report.department}.</h2>
           </div>
-          <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-bold text-white/58">{result.confidence}% confident</span>
+          <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-bold text-white/58">{answerMode === "ai" ? "AI answer" : `${result.confidence}% confident`}</span>
         </div>
         <p className="mt-4 rounded-2xl border border-civic-cyan/20 bg-civic-cyan/10 p-4 text-lg font-black leading-8 tracking-[-0.02em] text-white">
           {clearAnswerFor(result)}
         </p>
+        {aiAnswer ? (
+          <div className="mt-4 whitespace-pre-line rounded-2xl border border-white/10 bg-white/[0.055] p-4 text-base font-semibold leading-7 text-white/76">
+            {aiAnswer}
+          </div>
+        ) : null}
         <p className="mt-4 max-w-3xl text-base leading-7 text-white/62">{result.summary}</p>
         <div className="mt-5 grid gap-3 md:grid-cols-4">
           <AnswerFact label="Type" value={result.category} />
@@ -448,6 +477,22 @@ export function CopilotResponseCard({
       <LiveDataPanel liveData={liveData} isSearching={isSearchingLiveData} />
     </section>
   );
+}
+
+function readCopilotSettings() {
+  if (typeof window === "undefined") return { openaiKey: "", openaiModel: "" };
+
+  try {
+    const saved = window.localStorage.getItem("city-copilot-settings");
+    if (!saved) return { openaiKey: "", openaiModel: "" };
+    const parsed = JSON.parse(saved) as { openaiKey?: string; openaiModel?: string };
+    return {
+      openaiKey: parsed.openaiKey ?? "",
+      openaiModel: parsed.openaiModel ?? ""
+    };
+  } catch {
+    return { openaiKey: "", openaiModel: "" };
+  }
 }
 
 function LiveDataPanel({ liveData, isSearching }: { liveData?: LiveDataResult | null; isSearching: boolean }) {

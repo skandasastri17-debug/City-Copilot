@@ -1,13 +1,14 @@
 import Link from "next/link";
-import { Bot, Clock3, Grid2X2, Info, Library, MoreHorizontal, Search, SquarePen } from "lucide-react";
+import { Bot, Clock3, GitCompare, Grid2X2, HeartHandshake, Info, Map, Settings, SquarePen } from "lucide-react";
 
 const primaryItems = [
-  ["New chat", "/", SquarePen],
-  ["Search chats", "/", Search],
-  ["Library", "/resources", Library],
+  ["Ask", "/", SquarePen],
+  ["Neighborhoods", "/neighborhoods", Map],
+  ["Compare", "/compare", GitCompare],
+  ["Participate", "/participate", HeartHandshake],
   ["Reports", "/reports", Clock3],
-  ["About", "/about", Info],
-  ["More", "/about", MoreHorizontal]
+  ["Settings", "/settings", Settings],
+  ["About", "/about", Info]
 ] as const;
 
 export function Header() {
@@ -43,10 +44,10 @@ export function Header() {
         </nav>
 
         <div className="mt-8 min-h-0 flex-1 overflow-hidden">
-          <p className="px-3 text-sm font-bold text-white">Workspace</p>
+          <p className="px-3 text-sm font-bold text-white">Merged MVP</p>
           <div className="mt-3 rounded-2xl border border-white/10 bg-white/[0.03] p-3">
-            <p className="text-sm font-semibold text-white/84">No saved chats yet</p>
-            <p className="mt-1 text-xs leading-5 text-white/46">Start a new Toronto service request to create a conversation.</p>
+            <p className="text-sm font-semibold text-white/84">Ask. Evaluate. Shape.</p>
+            <p className="mt-1 text-xs leading-5 text-white/46">City Copilot now combines civic chat, livability scoring, and proposal actions.</p>
           </div>
         </div>
 
@@ -68,8 +69,8 @@ export function Header() {
             <Bot size={20} aria-hidden="true" />
             City Copilot
           </Link>
-          <Link href="/resources" className="rounded-full border border-white/15 px-3 py-1.5 text-sm text-white/80">
-            Resources
+          <Link href="/settings" className="rounded-full border border-white/15 px-3 py-1.5 text-sm text-white/80">
+            Settings
           </Link>
         </div>
       </header>
