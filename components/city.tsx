@@ -12,7 +12,6 @@ import {
   FileText,
   Filter,
   Layers3,
-  LocateFixed,
   Map,
   MapPin,
   MessageSquareText,
@@ -388,90 +387,68 @@ export function CopilotResponseCard({
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="font-utility text-[11px] font-bold uppercase text-white/45">Copilot answer</p>
-            <h2 className="mt-1 text-2xl font-black tracking-[-0.03em] text-white">Route this to {result.report.department}.</h2>
+            <h2 className="mt-1 text-2xl font-black tracking-[-0.03em] text-white">{simpleAnswerFor(result)}</h2>
           </div>
-          <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-bold text-white/58">{answerMode === "ai" ? "AI answer" : `${result.confidence}% confident`}</span>
+          <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-bold text-white/58">{answerMode === "ai" ? "AI answer" : "Built-in answer"}</span>
         </div>
-        <p className="mt-4 rounded-2xl border border-civic-cyan/20 bg-civic-cyan/10 p-4 text-lg font-black leading-8 tracking-[-0.02em] text-white">
-          {clearAnswerFor(result)}
-        </p>
-        {aiAnswer ? <ReadableCopilotAnswer answer={aiAnswer} /> : null}
-        <p className="mt-4 max-w-3xl text-base leading-7 text-white/62">{result.summary}</p>
-        <div className="mt-5 grid gap-3 md:grid-cols-4">
-          <AnswerFact label="Type" value={result.category} />
+        <p className="mt-4 rounded-2xl border border-civic-cyan/20 bg-civic-cyan/10 p-4 text-lg font-black leading-8 tracking-[-0.02em] text-white">{nextStepFor(result)}</p>
+        {answerMode === "ai" && aiAnswer ? <ReadableCopilotAnswer answer={aiAnswer} /> : null}
+        <div className="mt-5 grid gap-3 md:grid-cols-3">
+          <AnswerFact label="Department" value={result.report.department} />
           <AnswerFact label="Priority" value={result.report.priority} />
-          <AnswerFact label="Status" value={result.report.status} />
           <AnswerFact label="Response" value={result.report.estimatedResponseTime} />
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-[26px] border border-white/10 bg-[#171717] shadow-sm">
-        <div className="grid md:grid-cols-[190px_1fr]">
-          <div className="routing-rail border-b border-civic-line p-5 text-white md:border-b-0 md:border-r">
-            <p className="font-utility text-[11px] font-bold uppercase text-white/62">311 routing</p>
-            <div className="mt-5 space-y-4">
-              <RailStep done label="Classified" value={result.category} />
-              <RailStep done label="Department" value={result.report.department} />
-              <RailStep label="Location" value="Needs confirmation" />
-            </div>
-          </div>
-          <div className="p-5">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex flex-wrap items-center gap-2">
-                <CategoryBadge category={result.category} />
-                <PriorityBadge priority={result.report.priority} />
+      <div className="rounded-[26px] border border-white/10 bg-[#171717] p-5 shadow-sm">
+        <h3 className="flex items-center gap-2 text-lg font-extrabold text-white">
+          <Workflow size={18} aria-hidden="true" />
+          Quick actions
+        </h3>
+        <div className="mt-4 grid gap-2 sm:grid-cols-2">
+          {result.suggestedActions.slice(0, 2).map((action) => (
+            <Link key={action} href={actionHref(action)} className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-left text-sm font-bold text-white/82 transition hover:border-white/20 hover:bg-white/10">
+              {action}
+              <ArrowRight size={16} aria-hidden="true" />
+            </Link>
+          ))}
+        </div>
+      </div>
+
+      <details className="overflow-hidden rounded-[26px] border border-white/10 bg-[#171717] shadow-sm">
+        <summary className="cursor-pointer px-5 py-4 text-sm font-black text-white/70 transition hover:bg-white/5">Show routing details and data sources</summary>
+        <div className="border-t border-white/10">
+          <div className="grid md:grid-cols-[190px_1fr]">
+            <div className="routing-rail border-b border-civic-line p-5 text-white md:border-b-0 md:border-r">
+              <p className="font-utility text-[11px] font-bold uppercase text-white/62">311 routing</p>
+              <div className="mt-5 space-y-4">
+                <RailStep done label="Classified" value={result.category} />
+                <RailStep done label="Department" value={result.report.department} />
+                <RailStep label="Location" value="Needs confirmation" />
               </div>
-              <span className="font-utility text-[11px] font-bold uppercase text-white/45">Draft report</span>
             </div>
-            <h3 className="mt-4 text-2xl font-black tracking-[-0.03em] text-white">{result.report.title}</h3>
-            <div className="mt-5 grid gap-3 sm:grid-cols-2">
-              <ReportField label="Suggested department" value={result.report.department} />
-              <ReportField label="Location needed" value={result.report.location} />
-            </div>
-            <div className="mt-5 grid gap-4 lg:grid-cols-2">
-              <ReadableBlock title="Clean city description" body={result.report.description} />
-              <ReadableBlock title="Recommended next step" body={result.report.nextStep} />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid gap-4 lg:grid-cols-2">
-        <div className="rounded-[26px] border border-white/10 bg-[#171717] p-5 shadow-sm">
-          <h3 className="flex items-center gap-2 text-lg font-extrabold text-white">
-            <Workflow size={18} aria-hidden="true" />
-            Suggested actions
-          </h3>
-          <div className="mt-4 grid gap-2">
-            {result.suggestedActions.map((action) => (
-              <Link key={action} href={actionHref(action)} className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-left text-sm font-bold text-white/82 transition hover:border-white/20 hover:bg-white/10">
-                {action}
-                <ArrowRight size={16} aria-hidden="true" />
-              </Link>
-            ))}
-          </div>
-        </div>
-        <div className="rounded-[26px] border border-white/10 bg-[#171717] p-5 shadow-sm">
-          <h3 className="flex items-center gap-2 text-lg font-extrabold text-white">
-            <LocateFixed size={18} aria-hidden="true" />
-            Similar nearby issues
-          </h3>
-          <div className="mt-4 space-y-3">
-            {result.similarIssues.length ? (
-              result.similarIssues.map((issue) => (
-                <div key={issue.id} className="rounded-2xl border border-white/10 bg-white/5 p-3">
-                  <p className="text-sm font-bold text-white/86">{issue.title}</p>
-                  <p className="mt-1 text-xs text-white/50">{issue.location}</p>
+            <div className="p-5">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <CategoryBadge category={result.category} />
+                  <PriorityBadge priority={result.report.priority} />
                 </div>
-              ))
-            ) : (
-              <EmptyState title="No similar reports yet" body="This request would start a new issue cluster in the demo data." />
-            )}
+                <span className="font-utility text-[11px] font-bold uppercase text-white/45">Draft report</span>
+              </div>
+              <h3 className="mt-4 text-2xl font-black tracking-[-0.03em] text-white">{result.report.title}</h3>
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                <ReportField label="Suggested department" value={result.report.department} />
+                <ReportField label="Location needed" value={result.report.location} />
+              </div>
+              <div className="mt-5 grid gap-4 lg:grid-cols-2">
+                <ReadableBlock title="Clean city description" body={result.report.description} />
+                <ReadableBlock title="Recommended next step" body={result.report.nextStep} />
+              </div>
+            </div>
           </div>
+          <LiveDataPanel liveData={liveData} isSearching={isSearchingLiveData} />
         </div>
-      </div>
-
-      <LiveDataPanel liveData={liveData} isSearching={isSearchingLiveData} />
+      </details>
     </section>
   );
 }
@@ -587,6 +564,34 @@ function LiveDataPanel({ liveData, isSearching }: { liveData?: LiveDataResult | 
       )}
     </div>
   );
+}
+
+function simpleAnswerFor(result: CopilotResult) {
+  if (result.category === "Community Services") {
+    return "Use a city community service.";
+  }
+
+  if (result.category === "Other") {
+    return "I need one more detail.";
+  }
+
+  if (result.category === "Infrastructure") {
+    return "Report it to Toronto 311.";
+  }
+
+  return `Start with ${result.report.department}.`;
+}
+
+function nextStepFor(result: CopilotResult) {
+  if (result.category === "Infrastructure") {
+    return "Give the exact location and a photo if you have one.";
+  }
+
+  if (result.category === "Other") {
+    return "Tell me the location and what kind of city service it involves.";
+  }
+
+  return result.report.nextStep;
 }
 
 function clearAnswerFor(result: CopilotResult) {

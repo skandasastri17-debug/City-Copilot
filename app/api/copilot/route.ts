@@ -45,7 +45,7 @@ export async function POST(request: Request) {
           {
             role: "system",
             content:
-              "You are City Copilot, a Toronto civic assistant. Give clear, practical answers. Use short sections. State the likely department, urgency, next steps, and useful data sources. Do not pretend to file official reports."
+              "You are City Copilot, a Toronto civic assistant. Answer in 2-4 short lines. Use simple words. Tell the resident what to do next. Do not list datasets, sources, routing details, or internal classifications unless the user asks. Do not pretend to file official reports."
           },
           {
             role: "user",
@@ -92,12 +92,10 @@ export async function POST(request: Request) {
   }
 }
 
-function fallbackAnswer(query: string, department: string, nextStep: string) {
+function fallbackAnswer(_query: string, department: string, nextStep: string) {
   return [
-    `Clear answer: this looks like a Toronto civic request for ${department}.`,
+    `Answer: Start with ${department}.`,
     "",
-    `What to do next: ${nextStep}`,
-    "",
-    `Resident question: ${query}`
+    `Next: ${nextStep}`
   ].join("\n");
 }
