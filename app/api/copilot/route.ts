@@ -9,6 +9,10 @@ const requestSchema = z.object({
   model: z.string().optional()
 });
 
+const NEMOTRON_MODEL = "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning-bf16";
+const NVIDIA_BASE_URL = "https://integrate.api.nvidia.com/v1";
+const OPENAI_BASE_URL = "https://api.openai.com/v1";
+
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
   const parsed = requestSchema.safeParse(body);
@@ -20,7 +24,16 @@ export async function POST(request: Request) {
   const query = parsed.data.query;
   const classification = classifyRequest(query);
   const liveData = await searchLiveData({ query, category: classification.category, limit: 5 });
-  const apiKey = process.env.OPENAI_API_KEY || parsed.data.openaiKey;
+  const model = parsed.data.model || process.env.AI_MODEL || process.env.NVIDIA_MODEL || process.env.OPENAI_MODEL || NEMOTRON_MODEL;
+  const provider = model.toLowerCase().includes("nemotron") ? "nvidia" : "openai";
+  const apiKey =
+    provider === "nvidia"
+      ? process.env.NVIDIA_API_KEY || process.env.AI_API_KEY || process.env.OPENAI_API_KEY || parsed.data.openaiKey
+      : process.env.OPENAI_API_KEY || process.env.AI_API_KEY || parsed.data.openaiKey;
+  const baseUrl =
+    process.env.AI_BASE_URL ||
+    process.env.NVIDIA_API_BASE_URL ||
+    (provider === "nvidia" ? NVIDIA_BASE_URL : OPENAI_BASE_URL);
 
   if (!apiKey) {
     return NextResponse.json({
@@ -32,15 +45,16 @@ export async function POST(request: Request) {
   }
 
   try {
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    const response = await fetch(`${baseUrl}/chat/completions`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: parsed.data.model || process.env.OPENAI_MODEL || "gpt-4.1-mini",
+        model,
         temperature: 0.2,
+        max_tokens: 220,
         messages: [
           {
             role: "system",
@@ -77,6 +91,8 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       mode: "ai",
+      provider,
+      model,
       answer: payload.choices?.[0]?.message?.content ?? fallbackAnswer(query, classification.report.department, classification.report.nextStep),
       classification,
       liveData
@@ -87,7 +103,7 @@ export async function POST(request: Request) {
       answer: fallbackAnswer(query, classification.report.department, classification.report.nextStep),
       classification,
       liveData,
-      warning: "AI provider unavailable; returned the reliable rules-based answer."
+      warning: `${provider} provider unavailable; returned the reliable built-in answer.`
     });
   }
 }
