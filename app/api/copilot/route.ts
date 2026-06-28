@@ -83,7 +83,10 @@ export async function POST(request: Request) {
       })
     });
 
-    if (!response.ok) throw new Error(`OpenAI returned ${response.status}`);
+    if (!response.ok) {
+      const message = await response.text().catch(() => "");
+      throw new Error(`${provider} returned ${response.status}: ${message.slice(0, 180)}`);
+    }
 
     const payload = (await response.json()) as {
       choices?: Array<{ message?: { content?: string } }>;
@@ -97,13 +100,16 @@ export async function POST(request: Request) {
       classification,
       liveData
     });
-  } catch {
+  } catch (error) {
     return NextResponse.json({
       mode: "rules",
+      provider,
+      model,
       answer: fallbackAnswer(query, classification.report.department, classification.report.nextStep),
       classification,
       liveData,
-      warning: `${provider} provider unavailable; returned the reliable built-in answer.`
+      warning: `${provider} provider unavailable; returned the reliable built-in answer.`,
+      diagnostic: error instanceof Error ? error.message : "Unknown provider error"
     });
   }
 }
