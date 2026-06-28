@@ -265,6 +265,7 @@ export function AssistantWorkspace() {
     const query = input.trim();
     const nextResult = classifyRequest(query);
 
+    setInput("");
     setUserPrompt(query);
     setResult(nextResult);
     setIsSearchingLiveData(true);
@@ -394,11 +395,7 @@ export function CopilotResponseCard({
         <p className="mt-4 rounded-2xl border border-civic-cyan/20 bg-civic-cyan/10 p-4 text-lg font-black leading-8 tracking-[-0.02em] text-white">
           {clearAnswerFor(result)}
         </p>
-        {aiAnswer ? (
-          <div className="mt-4 whitespace-pre-line rounded-2xl border border-white/10 bg-white/[0.055] p-4 text-base font-semibold leading-7 text-white/76">
-            {aiAnswer}
-          </div>
-        ) : null}
+        {aiAnswer ? <ReadableCopilotAnswer answer={aiAnswer} /> : null}
         <p className="mt-4 max-w-3xl text-base leading-7 text-white/62">{result.summary}</p>
         <div className="mt-5 grid gap-3 md:grid-cols-4">
           <AnswerFact label="Type" value={result.category} />
@@ -477,6 +474,58 @@ export function CopilotResponseCard({
       <LiveDataPanel liveData={liveData} isSearching={isSearchingLiveData} />
     </section>
   );
+}
+
+function ReadableCopilotAnswer({ answer }: { answer: string }) {
+  const sections = splitAnswerSections(answer);
+
+  return (
+    <div className="mt-4 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.055]">
+      <div className="border-b border-white/10 bg-white/[0.035] px-4 py-3">
+        <p className="font-utility text-[11px] font-bold uppercase tracking-[0.14em] text-white/45">Clear response</p>
+      </div>
+      <div className="space-y-3 p-4">
+        {sections.map((section, index) => (
+          <section key={`${section.title}-${index}`} className="rounded-2xl border border-white/8 bg-black/18 p-4">
+            {section.title ? <h3 className="text-sm font-black uppercase tracking-[0.12em] text-[#55c7d9]">{section.title}</h3> : null}
+            <div className="mt-2 space-y-2">
+              {section.lines.map((line) => (
+                <p key={line} className="text-base font-semibold leading-7 text-white/78">
+                  {line}
+                </p>
+              ))}
+            </div>
+          </section>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function splitAnswerSections(answer: string) {
+  const rawLines = answer
+    .split("\n")
+    .map((line) => line.trim().replace(/^[-*]\s+/, ""))
+    .filter(Boolean);
+
+  const sections: Array<{ title: string; lines: string[] }> = [];
+
+  rawLines.forEach((line) => {
+    const match = line.match(/^([^:]{2,44}):\s*(.+)$/);
+    if (match) {
+      sections.push({ title: match[1], lines: [match[2]] });
+      return;
+    }
+
+    const current = sections[sections.length - 1];
+    if (current && current.lines.length < 4) {
+      current.lines.push(line);
+    } else {
+      sections.push({ title: sections.length ? "Details" : "Answer", lines: [line] });
+    }
+  });
+
+  return sections.length ? sections : [{ title: "Answer", lines: [answer] }];
 }
 
 function readCopilotSettings() {
