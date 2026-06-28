@@ -43,6 +43,23 @@ import {
 import type { LiveDataResult } from "@/lib/liveData";
 import { getCopilotRequestConfig } from "@/lib/localSettings";
 
+type AiCivicAnswer = {
+  title: string;
+  answer: string;
+  department: string;
+  category: string;
+  priority: string;
+  nextStep: string;
+  locationNeeded: string;
+  cleanDescription: string;
+  actions: string[];
+  emailDraft: {
+    to: string;
+    subject: string;
+    body: string;
+  };
+};
+
 const categoryStyles: Record<CityCategory, string> = {
   Infrastructure: "border-civic-blue/25 bg-civic-blue/10 text-civic-blue",
   Safety: "border-civic-red/25 bg-civic-red/10 text-civic-red",
@@ -72,7 +89,7 @@ const statusStyles: Record<ReportStatus, string> = {
 export function CategoryBadge({ category }: { category: CityCategory }) {
   const Icon = getCategoryIcon(category);
   return (
-    <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-bold ${categoryStyles[category]}`}>
+    <span className="inline-flex items-center gap-1.5 border border-[var(--color-border)] bg-black px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-[var(--color-text-dim)]">
       <Icon size={13} aria-hidden="true" />
       {category}
     </span>
@@ -80,11 +97,11 @@ export function CategoryBadge({ category }: { category: CityCategory }) {
 }
 
 export function PriorityBadge({ priority }: { priority: Priority }) {
-  return <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-bold ${priorityStyles[priority]}`}>{priority}</span>;
+  return <span className="inline-flex border border-[var(--color-warn)] bg-black px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-[var(--color-warn)]">{priority}</span>;
 }
 
 export function StatusBadge({ status }: { status: ReportStatus }) {
-  return <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-bold ${statusStyles[status]}`}>{status}</span>;
+  return <span className="inline-flex border border-[var(--color-accent)] bg-black px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-[var(--color-accent)]">{status}</span>;
 }
 
 export function FeatureCard({ title, body, icon: Icon }: { title: string; body: string; icon: React.ElementType }) {
@@ -257,6 +274,7 @@ export function AssistantWorkspace() {
   const [liveData, setLiveData] = useState<LiveDataResult | null>(null);
   const [isSearchingLiveData, setIsSearchingLiveData] = useState(false);
   const [aiAnswer, setAiAnswer] = useState("");
+  const [civicAnswer, setCivicAnswer] = useState<AiCivicAnswer | null>(null);
   const [answerMode, setAnswerMode] = useState<"ai" | "rules" | "">("");
   const hasAsked = Boolean(result && userPrompt);
 
@@ -271,6 +289,7 @@ export function AssistantWorkspace() {
     setIsSearchingLiveData(true);
     setLiveData(null);
     setAiAnswer("");
+    setCivicAnswer(null);
     setAnswerMode("");
 
     const savedSettings = getCopilotRequestConfig();
@@ -288,6 +307,7 @@ export function AssistantWorkspace() {
         return response.json() as Promise<{
           mode: "ai" | "rules";
           answer: string;
+          civicAnswer?: AiCivicAnswer;
           classification: CopilotResult;
           liveData: LiveDataResult;
         }>;
@@ -296,6 +316,7 @@ export function AssistantWorkspace() {
         setResult(payload.classification);
         setLiveData(payload.liveData);
         setAiAnswer(payload.answer);
+        setCivicAnswer(payload.civicAnswer ?? null);
         setAnswerMode(payload.mode);
       })
       .catch(() =>
@@ -334,7 +355,7 @@ export function AssistantWorkspace() {
             </ChatBubble>
             {result ? (
               <ChatBubble role="assistant" wide>
-                <CopilotResponseCard result={result} liveData={liveData} isSearchingLiveData={isSearchingLiveData} aiAnswer={aiAnswer} answerMode={answerMode} />
+                <CopilotResponseCard result={result} liveData={liveData} isSearchingLiveData={isSearchingLiveData} aiAnswer={aiAnswer} civicAnswer={civicAnswer} answerMode={answerMode} />
               </ChatBubble>
             ) : null}
           </div>
@@ -373,41 +394,54 @@ export function CopilotResponseCard({
   liveData,
   isSearchingLiveData = false,
   aiAnswer = "",
+  civicAnswer,
   answerMode = ""
 }: {
   result: CopilotResult;
   liveData?: LiveDataResult | null;
   isSearchingLiveData?: boolean;
   aiAnswer?: string;
+  civicAnswer?: AiCivicAnswer | null;
   answerMode?: "ai" | "rules" | "";
 }) {
+  const isAi = answerMode === "ai" && civicAnswer;
+  const title = isAi ? civicAnswer.title : simpleAnswerFor(result);
+  const mainAnswer = isAi ? civicAnswer.answer : clearAnswerFor(result);
+  const department = isAi ? civicAnswer.department : result.report.department;
+  const category = isAi ? civicAnswer.category : result.category;
+  const priority = isAi ? civicAnswer.priority : result.report.priority;
+  const nextStep = isAi ? civicAnswer.nextStep : nextStepFor(result);
+  const locationNeeded = isAi ? civicAnswer.locationNeeded : result.report.location;
+  const cleanDescription = isAi ? civicAnswer.cleanDescription : result.report.description;
+  const actions = isAi ? civicAnswer.actions : result.suggestedActions;
+  const emailDraft = isAi ? civicAnswer.emailDraft : null;
+
   return (
     <section className="space-y-4">
-      <div className="rounded-[26px] border border-white/10 bg-[#171717] p-5 shadow-sm">
+      <div className="terminal-panel p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="font-utility text-[11px] font-bold uppercase text-white/45">Copilot answer</p>
-            <h2 className="mt-1 text-2xl font-black tracking-[-0.03em] text-white">{simpleAnswerFor(result)}</h2>
+            <p className="terminal-label">[ COPILOT ANSWER ]</p>
+            <h2 className="mt-1 text-2xl font-bold uppercase tracking-tight text-[var(--color-text)]">{title}</h2>
           </div>
-          <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-bold text-white/58">{answerMode === "ai" ? "AI answer" : "Built-in answer"}</span>
+          <span className={`border px-3 py-1 text-[10px] font-bold uppercase tracking-widest ${isAi ? "border-[var(--color-accent)] text-[var(--color-accent)]" : "border-[var(--color-warn)] text-[var(--color-warn)]"}`}>{isAi ? "[ AI FILLED ]" : "[ BUILT-IN FALLBACK ]"}</span>
         </div>
-        <p className="mt-4 rounded-2xl border border-civic-cyan/20 bg-civic-cyan/10 p-4 text-lg font-black leading-8 tracking-[-0.02em] text-white">{nextStepFor(result)}</p>
-        {answerMode === "ai" && aiAnswer ? <ReadableCopilotAnswer answer={aiAnswer} /> : null}
+        <p className="mt-4 border border-[var(--color-accent)] bg-[#041310] p-4 text-lg font-bold leading-8 text-[var(--color-text)]">{mainAnswer || aiAnswer}</p>
         <div className="mt-5 grid gap-3 md:grid-cols-3">
-          <AnswerFact label="Department" value={result.report.department} />
-          <AnswerFact label="Priority" value={result.report.priority} />
-          <AnswerFact label="Response" value={result.report.estimatedResponseTime} />
+          <AnswerFact label="Department" value={department} />
+          <AnswerFact label="Priority" value={priority} />
+          <AnswerFact label="Category" value={category} />
         </div>
       </div>
 
-      <div className="rounded-[26px] border border-white/10 bg-[#171717] p-5 shadow-sm">
-        <h3 className="flex items-center gap-2 text-lg font-extrabold text-white">
+      <div className="terminal-panel p-5">
+        <h3 className="flex items-center gap-2 text-lg font-bold uppercase text-[var(--color-text)]">
           <Workflow size={18} aria-hidden="true" />
-          Quick actions
+          [ NEXT ACTIONS ]
         </h3>
         <div className="mt-4 grid gap-2 sm:grid-cols-2">
-          {result.suggestedActions.slice(0, 2).map((action) => (
-            <Link key={action} href={actionHref(action)} className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-left text-sm font-bold text-white/82 transition hover:border-white/20 hover:bg-white/10">
+          {actions.slice(0, 4).map((action) => (
+            <Link key={action} href={actionHref(action)} className="flex items-center justify-between border border-[var(--color-border)] bg-black px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[var(--color-text-dim)] transition hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]">
               {action}
               <ArrowRight size={16} aria-hidden="true" />
             </Link>
@@ -415,40 +449,53 @@ export function CopilotResponseCard({
         </div>
       </div>
 
-      <details className="overflow-hidden rounded-[26px] border border-white/10 bg-[#171717] shadow-sm">
-        <summary className="cursor-pointer px-5 py-4 text-sm font-black text-white/70 transition hover:bg-white/5">Show routing details and data sources</summary>
+      {emailDraft ? <EmailDraftPanel draft={emailDraft} /> : null}
+
+      <details className="terminal-panel overflow-hidden">
+        <summary className="cursor-pointer px-5 py-4 text-xs font-bold uppercase tracking-widest text-[var(--color-text-dim)] transition hover:text-[var(--color-accent)]">[ SHOW STRUCTURED DETAILS ]</summary>
         <div className="border-t border-white/10">
           <div className="grid md:grid-cols-[190px_1fr]">
-            <div className="routing-rail border-b border-civic-line p-5 text-white md:border-b-0 md:border-r">
-              <p className="font-utility text-[11px] font-bold uppercase text-white/62">311 routing</p>
+            <div className="border-b border-[var(--color-border)] bg-black p-5 text-[var(--color-text)] md:border-b-0 md:border-r">
+              <p className="terminal-label">[ ROUTING ]</p>
               <div className="mt-5 space-y-4">
-                <RailStep done label="Classified" value={result.category} />
-                <RailStep done label="Department" value={result.report.department} />
-                <RailStep label="Location" value="Needs confirmation" />
+                <RailStep done label="Category" value={category} />
+                <RailStep done label="Department" value={department} />
+                <RailStep label="Location" value={locationNeeded} />
               </div>
             </div>
             <div className="p-5">
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex flex-wrap items-center gap-2">
-                  <CategoryBadge category={result.category} />
-                  <PriorityBadge priority={result.report.priority} />
-                </div>
-                <span className="font-utility text-[11px] font-bold uppercase text-white/45">Draft report</span>
+                <span className="terminal-label">[ STRUCTURED REQUEST ]</span>
               </div>
-              <h3 className="mt-4 text-2xl font-black tracking-[-0.03em] text-white">{result.report.title}</h3>
+              <h3 className="mt-4 text-2xl font-bold uppercase tracking-tight text-[var(--color-text)]">{title}</h3>
               <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                <ReportField label="Suggested department" value={result.report.department} />
-                <ReportField label="Location needed" value={result.report.location} />
+                <ReportField label="Suggested department" value={department} />
+                <ReportField label="Location needed" value={locationNeeded} />
               </div>
               <div className="mt-5 grid gap-4 lg:grid-cols-2">
-                <ReadableBlock title="Clean city description" body={result.report.description} />
-                <ReadableBlock title="Recommended next step" body={result.report.nextStep} />
+                <ReadableBlock title="Clean city description" body={cleanDescription} />
+                <ReadableBlock title="Recommended next step" body={nextStep} />
               </div>
             </div>
           </div>
-          <LiveDataPanel liveData={liveData} isSearching={isSearchingLiveData} />
+          {!isAi ? <LiveDataPanel liveData={liveData} isSearching={isSearchingLiveData} /> : null}
         </div>
       </details>
+    </section>
+  );
+}
+
+function EmailDraftPanel({ draft }: { draft: AiCivicAnswer["emailDraft"] }) {
+  return (
+    <section className="terminal-panel p-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="terminal-label">[ EMAIL DRAFT ]</p>
+          <h3 className="mt-1 text-lg font-bold uppercase text-[var(--color-text)]">{draft.subject}</h3>
+        </div>
+        <span className="border border-[var(--color-border)] px-3 py-1 text-[10px] uppercase tracking-widest text-[var(--color-text-mute)]">TO: {draft.to}</span>
+      </div>
+      <pre className="mt-4 whitespace-pre-wrap border border-[var(--color-border)] bg-black p-4 text-sm leading-7 text-[var(--color-text-dim)]">{draft.body}</pre>
     </section>
   );
 }
@@ -613,27 +660,27 @@ function RailStep({ label, value, done = false }: { label: string; value: string
 
 function AnswerFact({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-      <p className="text-xs font-bold uppercase text-white/45">{label}</p>
-      <p className="mt-1 text-base font-black tracking-[-0.02em] text-white">{value}</p>
+    <div className="border border-[var(--color-border)] bg-black p-4">
+      <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--color-text-mute)]">{label}</p>
+      <p className="mt-1 text-sm font-bold uppercase leading-5 text-[var(--color-text)]">{value}</p>
     </div>
   );
 }
 
 function ReportField({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-      <p className="text-xs font-bold uppercase text-white/45">{label}</p>
-      <p className="mt-1 text-sm font-extrabold leading-6 text-white/86">{value}</p>
+    <div className="border border-[var(--color-border)] bg-black p-4">
+      <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--color-text-mute)]">{label}</p>
+      <p className="mt-1 text-sm font-bold leading-6 text-[var(--color-text)]">{value}</p>
     </div>
   );
 }
 
 function ReadableBlock({ title, body }: { title: string; body: string }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-      <p className="text-sm font-extrabold text-white">{title}</p>
-      <p className="mt-2 text-sm leading-7 text-white/58">{body}</p>
+    <div className="border border-[var(--color-border)] bg-black p-4">
+      <p className="text-xs font-bold uppercase tracking-widest text-[var(--color-accent)]">{title}</p>
+      <p className="mt-2 text-sm leading-7 text-[var(--color-text-dim)]">{body}</p>
     </div>
   );
 }
@@ -641,11 +688,11 @@ function ReadableBlock({ title, body }: { title: string; body: string }) {
 export function ReportCard({ report, detailed = false, onClick, active = false }: { report: CityReport; detailed?: boolean; onClick?: () => void; active?: boolean }) {
   const Wrapper = onClick ? "button" : "article";
   return (
-    <Wrapper onClick={onClick} className={`city-card block w-full p-5 text-left transition ${active ? "border-civic-blue/45 ring-2 ring-civic-blue/15" : ""}`}>
+    <Wrapper onClick={onClick} className={`terminal-panel block w-full p-5 text-left transition ${active ? "border-[var(--color-accent)] bg-[#041310]" : "hover:border-[var(--color-border-strong)]"}`}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="font-utility text-[11px] font-bold uppercase text-civic-muted">{report.id}</p>
-          <h3 className="mt-2 text-xl font-extrabold tracking-[-0.02em] text-civic-ink">{report.title}</h3>
+          <p className="terminal-label">[ {report.id} ]</p>
+          <h3 className="mt-2 text-xl font-bold uppercase tracking-tight text-[var(--color-text)]">{report.title}</h3>
         </div>
         <StatusBadge status={report.status} />
       </div>
@@ -653,18 +700,18 @@ export function ReportCard({ report, detailed = false, onClick, active = false }
         <CategoryBadge category={report.category} />
         <PriorityBadge priority={report.priority} />
       </div>
-      <div className="mt-5 grid gap-3 text-sm text-civic-muted sm:grid-cols-2">
+      <div className="mt-5 grid gap-3 text-sm text-[var(--color-text-dim)] sm:grid-cols-2">
         <InfoRow icon={BuildingIcon} label="Department" value={report.department} />
         <InfoRow icon={Clock3} label="Response" value={report.estimatedResponseTime} />
         <InfoRow icon={MapPin} label="Location" value={report.location} />
         <InfoRow icon={FileText} label="Created" value={report.createdDate} />
       </div>
       {detailed ? (
-        <div className="mt-5 rounded-2xl border border-civic-line bg-white p-4">
-          <p className="text-sm font-bold text-civic-ink">City-ready description</p>
-          <p className="mt-2 text-sm leading-6 text-civic-muted">{report.description}</p>
-          <p className="mt-4 text-sm font-bold text-civic-ink">Recommended next step</p>
-          <p className="mt-2 text-sm leading-6 text-civic-muted">{report.nextStep}</p>
+        <div className="mt-5 border border-[var(--color-border)] bg-black p-4">
+          <p className="text-xs font-bold uppercase tracking-widest text-[var(--color-accent)]">City-ready description</p>
+          <p className="mt-2 text-sm leading-6 text-[var(--color-text-dim)]">{report.description}</p>
+          <p className="mt-4 text-xs font-bold uppercase tracking-widest text-[var(--color-accent)]">Recommended next step</p>
+          <p className="mt-2 text-sm leading-6 text-[var(--color-text-dim)]">{report.nextStep}</p>
         </div>
       ) : null}
     </Wrapper>
@@ -678,10 +725,10 @@ function BuildingIcon(props: { size?: number; className?: string; "aria-hidden"?
 function InfoRow({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: string }) {
   return (
     <div className="flex items-start gap-2">
-      <Icon className="mt-0.5 text-civic-blue" size={15} aria-hidden="true" />
+      <Icon className="mt-0.5 text-[var(--color-accent)]" size={15} aria-hidden="true" />
       <span>
-        <span className="block text-xs font-bold uppercase text-civic-muted/80">{label}</span>
-        <span className="font-semibold text-civic-ink">{value}</span>
+        <span className="block text-[10px] font-bold uppercase tracking-widest text-[var(--color-text-mute)]">{label}</span>
+        <span className="text-xs font-bold uppercase leading-5 text-[var(--color-text-dim)]">{value}</span>
       </span>
     </div>
   );
@@ -690,11 +737,11 @@ function InfoRow({ icon: Icon, label, value }: { icon: React.ElementType; label:
 export function ReportTimeline({ report }: { report: CityReport }) {
   const statusIndex = report.status === "Resolved" ? 4 : report.status === "In Progress" ? 3 : report.status === "In Review" ? 2 : report.status === "Submitted" ? 1 : 0;
   return (
-    <div className="city-card p-5">
+    <div className="terminal-panel p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="font-utility text-[11px] font-bold uppercase text-civic-muted">Tracking timeline</p>
-          <h2 className="mt-2 text-2xl font-black tracking-[-0.03em] text-civic-ink">{report.title}</h2>
+          <p className="terminal-label">[ TRACKING TIMELINE ]</p>
+          <h2 className="mt-2 text-2xl font-bold uppercase tracking-tight text-[var(--color-text)]">{report.title}</h2>
         </div>
         <StatusBadge status={report.status} />
       </div>
@@ -704,14 +751,14 @@ export function ReportTimeline({ report }: { report: CityReport }) {
           return (
             <div key={step} className="grid grid-cols-[2rem_1fr] gap-3">
               <div className="flex flex-col items-center">
-                <span className={`flex h-8 w-8 items-center justify-center rounded-full border ${done ? "border-civic-blue bg-civic-blue text-white" : "border-civic-line bg-white text-civic-muted"}`}>
+                <span className={`flex h-8 w-8 items-center justify-center border text-xs font-bold ${done ? "border-[var(--color-accent)] bg-[var(--color-accent)] text-black" : "border-[var(--color-border)] bg-black text-[var(--color-text-mute)]"}`}>
                   {done ? <CheckCircle2 size={16} aria-hidden="true" /> : index + 1}
                 </span>
-                {index < timelineSteps.length - 1 ? <span className={`h-10 w-px ${done ? "bg-civic-blue" : "bg-civic-line"}`} /> : null}
+                {index < timelineSteps.length - 1 ? <span className={`h-10 w-px ${done ? "bg-[var(--color-accent)]" : "bg-[var(--color-border)]"}`} /> : null}
               </div>
               <div className="pb-4">
-                <p className="font-bold text-civic-ink">{step}</p>
-                <p className="mt-1 text-sm text-civic-muted">{timelineCopy(step, report)}</p>
+                <p className="text-xs font-bold uppercase tracking-wider text-[var(--color-text)]">{step}</p>
+                <p className="mt-1 text-xs uppercase leading-5 tracking-wider text-[var(--color-text-mute)]">{timelineCopy(step, report)}</p>
               </div>
             </div>
           );
@@ -737,20 +784,25 @@ export function ReportsWorkspace() {
   const selected = reports.find((report) => report.id === selectedId) ?? reports[0];
 
   return (
-    <main className="mx-auto grid max-w-7xl gap-6 px-4 py-8 sm:px-6 lg:grid-cols-[0.88fr_1.12fr] lg:px-8 lg:py-10">
+    <main className="min-h-[calc(100vh-57px)] bg-black px-4 py-4 text-[var(--color-text)] lg:min-h-screen lg:px-6">
+      <div className="mx-auto grid max-w-7xl gap-4 lg:grid-cols-[0.88fr_1.12fr]">
       <section>
-        <p className="font-utility text-[11px] font-bold uppercase text-civic-muted">Report tracking</p>
-        <h1 className="mt-2 text-4xl font-black tracking-[-0.03em] text-civic-ink">Demo reports moving through Toronto workflows.</h1>
-        <div className="mt-6 grid gap-4">
+        <div className="terminal-panel p-4">
+          <p className="terminal-label">[ REPORTS // TRACKING ]</p>
+          <h1 className="mt-2 text-3xl font-bold uppercase tracking-tight text-[var(--color-text)]">Toronto workflow queue</h1>
+          <p className="mt-2 text-xs uppercase leading-6 tracking-wider text-[var(--color-text-dim)]">&gt; Select a report to inspect route, status, and next action.</p>
+        </div>
+        <div className="mt-4 grid gap-4">
           {reports.map((report) => (
             <ReportCard key={report.id} report={report} onClick={() => setSelectedId(report.id)} active={report.id === selectedId} />
           ))}
         </div>
       </section>
-      <section className="space-y-5">
+      <section className="space-y-4">
         <ReportTimeline report={selected} />
         <ReportCard report={selected} detailed />
       </section>
+      </div>
     </main>
   );
 }
@@ -847,10 +899,10 @@ export function EmptyState({ title, body }: { title: string; body: string }) {
 
 export function Footer() {
   return (
-    <footer className="border-t border-civic-line bg-white/60">
-      <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-8 text-sm text-civic-muted sm:px-6 md:flex-row md:items-center md:justify-between lg:px-8">
-        <p className="font-bold text-civic-ink">City Copilot</p>
-        <p>Hackathon MVP using mock Toronto data, local classification, and simulated service tracking.</p>
+    <footer className="border-t border-[var(--color-border)] bg-black">
+      <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-6 text-xs uppercase tracking-wider text-[var(--color-text-mute)] sm:px-6 md:flex-row md:items-center md:justify-between lg:px-8">
+        <p className="font-bold text-[var(--color-accent)]">[ CITY COPILOT ]</p>
+        <p>Toronto civic intelligence // local-first demo // AI when connected</p>
       </div>
     </footer>
   );

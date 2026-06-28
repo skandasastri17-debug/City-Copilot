@@ -17,6 +17,23 @@ const NVIDIA_BASE_URL = "https://integrate.api.nvidia.com/v1";
 const OPENAI_BASE_URL = "https://api.openai.com/v1";
 const DEFAULT_VULTR_MODEL = "minimax-m2.7";
 
+type AiCivicAnswer = {
+  title: string;
+  answer: string;
+  department: string;
+  category: string;
+  priority: string;
+  nextStep: string;
+  locationNeeded: string;
+  cleanDescription: string;
+  actions: string[];
+  emailDraft: {
+    to: string;
+    subject: string;
+    body: string;
+  };
+};
+
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
   const parsed = requestSchema.safeParse(body);
@@ -40,6 +57,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       mode: "rules",
       answer: fallbackAnswer(query, classification.report.department, classification.report.nextStep),
+      civicAnswer: fallbackCivicAnswer(query, classification),
       classification,
       liveData
     });
@@ -60,7 +78,7 @@ export async function POST(request: Request) {
           {
             role: "system",
             content:
-              "You are City Copilot, a Toronto civic assistant. Answer in 2-4 short lines. Use simple words. Tell the resident what to do next. Do not list datasets, sources, routing details, or internal classifications unless the user asks. Do not pretend to file official reports."
+              "You are City Copilot, a Toronto civic assistant. Return ONLY valid JSON with keys: title, answer, department, category, priority, nextStep, locationNeeded, cleanDescription, actions, emailDraft. actions must be 2-4 short strings. emailDraft must have to, subject, body. Use the resident's actual request. If they ask for a program like coding classes, route to the best city/library/community department and draft a polite email asking for details. Do not pretend to file official reports."
           },
           {
             role: "user",
@@ -92,12 +110,16 @@ export async function POST(request: Request) {
     const payload = (await response.json()) as {
       choices?: Array<{ message?: { content?: string } }>;
     };
+    const content = payload.choices?.[0]?.message?.content ?? "";
+    const parsedCivicAnswer = parseAiCivicAnswer(content);
+    const civicAnswer = parsedCivicAnswer ?? fallbackCivicAnswer(query, classification);
 
     return NextResponse.json({
-      mode: "ai",
+      mode: parsedCivicAnswer ? "ai" : "rules",
       provider: config.provider,
       model: config.model,
-      answer: payload.choices?.[0]?.message?.content ?? fallbackAnswer(query, classification.report.department, classification.report.nextStep),
+      answer: civicAnswer.answer,
+      civicAnswer,
       classification,
       liveData
     });
@@ -107,11 +129,72 @@ export async function POST(request: Request) {
       provider: config.provider,
       model: config.model,
       answer: fallbackAnswer(query, classification.report.department, classification.report.nextStep),
+      civicAnswer: fallbackCivicAnswer(query, classification),
       classification,
       liveData,
       warning: "AI provider unavailable; returned the reliable built-in answer."
     });
   }
+}
+
+function parseAiCivicAnswer(content: string): AiCivicAnswer | null {
+  const cleaned = content.trim().replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```$/i, "").trim();
+  const start = cleaned.indexOf("{");
+  const end = cleaned.lastIndexOf("}");
+  const json = start >= 0 && end > start ? cleaned.slice(start, end + 1) : cleaned;
+  try {
+    const parsed = JSON.parse(json) as Partial<AiCivicAnswer>;
+    if (!parsed.answer || !parsed.department || !parsed.emailDraft?.body) return null;
+    return {
+      title: clean(parsed.title) || "City Copilot response",
+      answer: clean(parsed.answer),
+      department: clean(parsed.department),
+      category: clean(parsed.category) || "City service",
+      priority: clean(parsed.priority) || "Normal",
+      nextStep: clean(parsed.nextStep) || "Contact the department with the details below.",
+      locationNeeded: clean(parsed.locationNeeded) || "Add a Toronto address, intersection, or program area if relevant.",
+      cleanDescription: clean(parsed.cleanDescription) || "Resident request needs review.",
+      actions: Array.isArray(parsed.actions) && parsed.actions.length ? parsed.actions.slice(0, 4).map(clean).filter(Boolean) : ["Contact the department", "Save this draft"],
+      emailDraft: {
+        to: clean(parsed.emailDraft.to) || clean(parsed.department),
+        subject: clean(parsed.emailDraft.subject) || "City Copilot request",
+        body: clean(parsed.emailDraft.body)
+      }
+    };
+  } catch {
+    return null;
+  }
+}
+
+function fallbackCivicAnswer(query: string, classification: ReturnType<typeof classifyRequest>): AiCivicAnswer {
+  return {
+    title: classification.report.title,
+    answer: fallbackAnswer(query, classification.report.department, classification.report.nextStep),
+    department: classification.report.department,
+    category: classification.category,
+    priority: classification.report.priority,
+    nextStep: classification.report.nextStep,
+    locationNeeded: classification.report.location,
+    cleanDescription: classification.report.description,
+    actions: classification.suggestedActions.slice(0, 4),
+    emailDraft: {
+      to: classification.report.department,
+      subject: classification.report.title,
+      body: [
+        `Hello ${classification.report.department},`,
+        "",
+        classification.report.description,
+        "",
+        `Recommended next step: ${classification.report.nextStep}`,
+        "",
+        "Thank you."
+      ].join("\n")
+    }
+  };
+}
+
+function clean(value: unknown) {
+  return typeof value === "string" ? value.trim() : "";
 }
 
 function resolveProvider(clientConfig: { provider?: "vultr" | "openai" | "compatible"; apiKey?: string; baseUrl?: string; model?: string; legacyOpenAiKey?: string }) {
