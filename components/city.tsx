@@ -41,6 +41,7 @@ import {
   torontoStats
 } from "@/lib/city";
 import type { LiveDataResult } from "@/lib/liveData";
+import { getCopilotRequestConfig } from "@/lib/localSettings";
 
 const categoryStyles: Record<CityCategory, string> = {
   Infrastructure: "border-civic-blue/25 bg-civic-blue/10 text-civic-blue",
@@ -272,15 +273,14 @@ export function AssistantWorkspace() {
     setAiAnswer("");
     setAnswerMode("");
 
-    const savedSettings = readCopilotSettings();
+    const savedSettings = getCopilotRequestConfig();
 
     fetch("/api/copilot", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         query,
-        openaiKey: savedSettings.openaiKey,
-        model: savedSettings.openaiModel
+        ...savedSettings
       })
     })
       .then((response) => {
@@ -503,22 +503,6 @@ function splitAnswerSections(answer: string) {
   });
 
   return sections.length ? sections : [{ title: "Answer", lines: [answer] }];
-}
-
-function readCopilotSettings() {
-  if (typeof window === "undefined") return { openaiKey: "", openaiModel: "" };
-
-  try {
-    const saved = window.localStorage.getItem("city-copilot-settings");
-    if (!saved) return { openaiKey: "", openaiModel: "" };
-    const parsed = JSON.parse(saved) as { openaiKey?: string; openaiModel?: string };
-    return {
-      openaiKey: parsed.openaiKey ?? "",
-      openaiModel: parsed.openaiModel ?? ""
-    };
-  } catch {
-    return { openaiKey: "", openaiModel: "" };
-  }
 }
 
 function LiveDataPanel({ liveData, isSearching }: { liveData?: LiveDataResult | null; isSearching: boolean }) {

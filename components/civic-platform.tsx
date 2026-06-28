@@ -15,6 +15,7 @@ import {
   type NeighborhoodProfile,
   type ScoreAxis
 } from "@/lib/civicPlatform";
+import { getCopilotRequestConfig } from "@/lib/localSettings";
 
 const radarSize = 280;
 const radarCenter = radarSize / 2;
@@ -389,7 +390,10 @@ function NeighborhoodChat({ profile }: { profile: NeighborhoodProfile }) {
       const response = await fetch("/api/copilot", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: `${question}\n\nNeighborhood context: ${profile.name}. Score ${profile.score}. Signals: ${profile.signals.join("; ")}` })
+        body: JSON.stringify({
+          query: `${question}\n\nNeighborhood context: ${profile.name}. Score ${profile.score}. Signals: ${profile.signals.join("; ")}`,
+          ...getCopilotRequestConfig()
+        })
       });
       const payload = (await response.json()) as { answer?: string; mode?: string };
       setMessages((items) => [...items, { role: "assistant", content: payload.answer ?? builtInNeighborhoodAnswer(profile, question), mode: payload.mode ?? "rules" }]);

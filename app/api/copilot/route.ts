@@ -5,6 +5,9 @@ import { searchLiveData } from "@/lib/liveData";
 
 const requestSchema = z.object({
   query: z.string().min(2).max(1200),
+  provider: z.enum(["vultr", "openai", "compatible"]).optional(),
+  apiKey: z.string().optional(),
+  baseUrl: z.string().optional(),
   openaiKey: z.string().optional(),
   model: z.string().optional()
 });
@@ -25,7 +28,13 @@ export async function POST(request: Request) {
   const query = parsed.data.query;
   const classification = classifyRequest(query);
   const liveData = await searchLiveData({ query, category: classification.category, limit: 5 });
-  const config = resolveProvider(parsed.data.model, parsed.data.openaiKey);
+  const config = resolveProvider({
+    provider: parsed.data.provider,
+    apiKey: parsed.data.apiKey,
+    baseUrl: parsed.data.baseUrl,
+    model: parsed.data.model,
+    legacyOpenAiKey: parsed.data.openaiKey
+  });
 
   if (!config) {
     return NextResponse.json({
@@ -105,7 +114,29 @@ export async function POST(request: Request) {
   }
 }
 
-function resolveProvider(requestedModel?: string, clientKey?: string) {
+function resolveProvider(clientConfig: { provider?: "vultr" | "openai" | "compatible"; apiKey?: string; baseUrl?: string; model?: string; legacyOpenAiKey?: string }) {
+  const clientKey = clientConfig.apiKey?.trim();
+  const clientBase = clientConfig.baseUrl?.trim();
+  const requestedModel = clientConfig.model?.trim();
+
+  if (clientKey && clientConfig.provider === "openai") {
+    return {
+      provider: "openai",
+      apiKey: clientKey,
+      baseUrl: stripSlash(clientBase || OPENAI_BASE_URL),
+      model: requestedModel || "gpt-4.1-mini"
+    };
+  }
+
+  if (clientKey && clientBase) {
+    return {
+      provider: clientConfig.provider ?? "compatible",
+      apiKey: clientKey,
+      baseUrl: stripSlash(clientBase),
+      model: requestedModel || (clientConfig.provider === "vultr" ? DEFAULT_VULTR_MODEL : "gpt-4.1-mini")
+    };
+  }
+
   const vultrKey = process.env.VULTR_API_KEY;
   const vultrBase = process.env.VULTR_API_BASE_URL;
   if (vultrKey && vultrBase) {
@@ -129,7 +160,7 @@ function resolveProvider(requestedModel?: string, clientKey?: string) {
     };
   }
 
-  const openAiKey = process.env.OPENAI_API_KEY || clientKey;
+  const openAiKey = process.env.OPENAI_API_KEY || clientConfig.legacyOpenAiKey;
   if (openAiKey) {
     return {
       provider: "openai",
