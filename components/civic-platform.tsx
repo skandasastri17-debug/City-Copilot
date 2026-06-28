@@ -1,159 +1,127 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, CalendarPlus, Check, ChevronRight, Clipboard, ExternalLink, Loader2, Mail, MapPin, RotateCcw, Scale, Search, Sparkles, ThumbsDown, ThumbsUp } from "lucide-react";
+import { CalendarPlus, Check, Clipboard, ExternalLink, Loader2, Mail, RotateCcw, Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { applyScenario, getNeighborhood, neighborhoods, proposalScore, proposals, scenarios, scoreAxes, type CivicProposal, type NeighborhoodProfile, type ScoreAxis } from "@/lib/civicPlatform";
+import {
+  applyScenarios,
+  dnaAxes,
+  getNeighborhood,
+  neighborhoods,
+  proposalScore,
+  proposals,
+  scenarios,
+  type CivicProposal,
+  type NeighborhoodProfile,
+  type ScoreAxis
+} from "@/lib/civicPlatform";
+
+const radarSize = 280;
+const radarCenter = radarSize / 2;
+const radarRadius = radarSize / 2 - 36;
 
 export function NeighborhoodsWorkspace() {
   const [selectedId, setSelectedId] = useState(neighborhoods[0].id);
-  const [scenarioId, setScenarioId] = useState(scenarios[0].id);
   const [address, setAddress] = useState(neighborhoods[0].addressHint);
   const [liveProfile, setLiveProfile] = useState<NeighborhoodProfile | null>(null);
+  const [activeScenarios, setActiveScenarios] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState("");
+  const [status, setStatus] = useState<"LIVE" | "FETCHING" | "FALLBACK">("LIVE");
   const profile = liveProfile ?? getNeighborhood(selectedId);
-  const projected = applyScenario(profile, scenarioId);
+  const projected = applyScenarios(profile, activeScenarios);
 
   async function analyzeAddress() {
     if (!address.trim()) return;
     setLoading(true);
-    setMessage("");
+    setStatus("FETCHING");
     try {
       const response = await fetch("/api/neighborhood-report", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ address })
       });
-      if (!response.ok) throw new Error("Could not analyze that place.");
+      if (!response.ok) throw new Error("Lookup failed");
       const report = (await response.json()) as NeighborhoodProfile;
       setLiveProfile(report);
-      setMessage(report.source === "Live" ? "Live civic data connected." : "Using fallback civic profile because the live lookup was unavailable.");
+      setStatus(report.source === "Live" ? "LIVE" : "FALLBACK");
     } catch {
-      setMessage("The live lookup failed, so the app kept the local civic profile available.");
+      setStatus("FALLBACK");
     } finally {
       setLoading(false);
     }
   }
 
+  function toggleScenario(id: string) {
+    setActiveScenarios((current) => (current.includes(id) ? current.filter((item) => item !== id) : [...current, id]));
+  }
+
   return (
-    <PlatformShell eyebrow="Evaluate" title="Neighborhood intelligence" body="Search a Toronto place, read its livability signals, and test what a civic improvement would change.">
-      <div className="grid gap-5 xl:grid-cols-[1.15fr_0.85fr]">
-        <section className="rounded-[28px] border border-white/10 bg-[#111] p-5">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="font-utility text-[11px] font-bold uppercase tracking-[0.16em] text-[#55c7d9]">Address analysis</p>
-              <h2 className="mt-2 text-2xl font-black tracking-[-0.03em]">{profile.name}</h2>
-              <p className="mt-1 flex items-center gap-2 text-sm text-white/48"><MapPin size={15} aria-hidden="true" /> {profile.addressHint}</p>
-            </div>
-            <select value={selectedId} onChange={(event) => setSelectedId(event.target.value)} className="h-12 rounded-2xl border border-white/10 bg-black/40 px-4 text-sm font-bold text-white outline-none">
+    <TerminalShell>
+      <StatusBar status={status} address={profile.addressHint} score={projected.score} />
+      <header className="terminal-panel p-4">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <p className="terminal-label">[ NEIGHBORHOOD NOW // CITY COPILOT ]</p>
+            <h1 className="mt-2 text-2xl font-bold uppercase tracking-tight text-[var(--color-text)]">
+              <span className="text-[var(--color-accent)]">{profile.name}</span> INTELLIGENCE
+            </h1>
+            <p className="mt-2 max-w-3xl text-xs uppercase leading-6 tracking-wider text-[var(--color-text-dim)]">&gt; TYPE AN ADDRESS. SEE WHAT IS HAPPENING. KNOW WHERE IT IS GOING.</p>
+          </div>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <select value={selectedId} onChange={(event) => { setSelectedId(event.target.value); setLiveProfile(null); }} className="border border-[var(--color-border)] bg-black px-3 py-2 text-xs font-bold uppercase tracking-widest text-[var(--color-text)]">
               {neighborhoods.map((item) => (
                 <option key={item.id} value={item.id}>{item.name}</option>
               ))}
             </select>
-          </div>
-
-          <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-            <input
-              value={address}
-              onChange={(event) => setAddress(event.target.value)}
-              placeholder="Try: 100 Queen St W, Toronto"
-              className="h-13 min-h-12 flex-1 rounded-2xl border border-white/10 bg-black/35 px-4 text-sm font-semibold text-white outline-none placeholder:text-white/28 focus:border-[#55c7d9]/60"
-            />
-            <button type="button" onClick={analyzeAddress} disabled={loading} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-[#da291c] px-5 text-sm font-black text-white disabled:opacity-60">
-              {loading ? <Loader2 className="animate-spin" size={17} aria-hidden="true" /> : <Search size={17} aria-hidden="true" />}
-              Analyze
+            <input value={address} onChange={(event) => setAddress(event.target.value)} placeholder="100 Queen St W" className="min-w-0 border border-[var(--color-border)] bg-black px-3 py-2 text-xs uppercase tracking-wider text-[var(--color-text)] placeholder:text-[var(--color-text-mute)]" />
+            <button type="button" onClick={analyzeAddress} disabled={loading} className="inline-flex items-center justify-center gap-2 border border-[var(--color-accent)] bg-[var(--color-accent)] px-4 py-2 text-xs font-bold uppercase tracking-widest text-black disabled:opacity-60">
+              {loading ? <Loader2 className="animate-spin" size={14} aria-hidden="true" /> : <Search size={14} aria-hidden="true" />}
+              [ ANALYZE ]
             </button>
           </div>
-          {message ? <p className="mt-3 rounded-2xl border border-white/10 bg-white/5 p-3 text-sm font-bold text-white/58">{message}</p> : null}
+        </div>
+      </header>
 
-          <div className="mt-6 grid gap-5 lg:grid-cols-[260px_1fr]">
-            <ScoreDial score={projected.score} label={projected.scenario ? `+${projected.score - profile.score} from ${projected.scenario.name}` : profile.rank} />
-            <div>
-              <p className="rounded-2xl border border-[#55c7d9]/20 bg-[#55c7d9]/10 p-4 text-lg font-extrabold leading-8 tracking-[-0.02em]">{profile.summary}</p>
-              <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                <SignalTile label="Rank" value={profile.rank} />
-                <SignalTile label="Trend" value={profile.trend} />
-                <SignalTile label="Forecast" value={`${profile.forecast.at(-1)}/100`} />
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-6 grid gap-3">
-            {scoreAxes.map((axis) => (
-              <ScoreBar key={axis} axis={axis} value={projected.axes[axis]} base={profile.axes[axis]} />
-            ))}
-          </div>
-        </section>
-
-        <section className="rounded-[28px] border border-white/10 bg-[#111] p-5">
-          <p className="font-utility text-[11px] font-bold uppercase tracking-[0.16em] text-white/45">What-if simulator</p>
-          <h2 className="mt-2 text-2xl font-black tracking-[-0.03em]">Test a city intervention</h2>
-          <div className="mt-5 grid gap-3">
-            {scenarios.map((scenario) => (
-              <button key={scenario.id} type="button" onClick={() => setScenarioId(scenario.id)} className={`rounded-2xl border p-4 text-left transition ${scenarioId === scenario.id ? "border-[#da291c] bg-[#da291c]/12" : "border-white/10 bg-white/5 hover:bg-white/10"}`}>
-                <span className="text-sm font-black text-white">{scenario.name}</span>
-                <span className="mt-1 block text-sm leading-6 text-white/52">{scenario.description}</span>
-                <span className="mt-3 inline-flex rounded-full bg-white/8 px-3 py-1 text-xs font-bold text-white/60">+{scenario.delta} {scenario.axis}</span>
-              </button>
-            ))}
-          </div>
-          <InsightList title="Signals" items={profile.signals} />
-          <InsightList title="Watch list" items={profile.risks} />
-          {profile.liveLeads?.length ? <LiveLeadList leads={profile.liveLeads} /> : null}
-        </section>
+      <div className="grid gap-4 xl:grid-cols-[1fr_1fr]">
+        <div className="flex flex-col gap-4">
+          <VerdictPills verdicts={profile.verdicts} />
+          <ScoreReport profile={profile} score={projected.score} delta={projected.delta} dna={projected.dna} />
+          <ScoreRadar base={profile.dna} modified={activeScenarios.length ? projected.dna : null} />
+          <CountsPanel profile={profile} />
+        </div>
+        <div className="flex flex-col gap-4">
+          <AnomalyPanel profile={profile} />
+          <ForecastPanel profile={profile} />
+          <WhatIfPanel active={activeScenarios} onToggle={toggleScenario} profile={profile} />
+          <NeighborhoodChat profile={profile} />
+          <LiveSources profile={profile} />
+        </div>
       </div>
-    </PlatformShell>
+    </TerminalShell>
   );
 }
 
 export function CompareWorkspace() {
   const [leftId, setLeftId] = useState(neighborhoods[0].id);
   const [rightId, setRightId] = useState(neighborhoods[1].id);
-  const [leftQuery, setLeftQuery] = useState(neighborhoods[0].addressHint);
-  const [rightQuery, setRightQuery] = useState(neighborhoods[1].addressHint);
-  const [leftLive, setLeftLive] = useState<NeighborhoodProfile | null>(null);
-  const [rightLive, setRightLive] = useState<NeighborhoodProfile | null>(null);
-  const [loadingSide, setLoadingSide] = useState<"left" | "right" | null>(null);
-  const left = leftLive ?? getNeighborhood(leftId);
-  const right = rightLive ?? getNeighborhood(rightId);
-  const winner = left.score === right.score ? "Tie" : left.score > right.score ? left.name : right.name;
-
-  async function analyzeSide(side: "left" | "right") {
-    const query = side === "left" ? leftQuery : rightQuery;
-    if (!query.trim()) return;
-    setLoadingSide(side);
-    try {
-      const response = await fetch("/api/neighborhood-report", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ address: query })
-      });
-      if (!response.ok) throw new Error("Compare lookup failed");
-      const report = (await response.json()) as NeighborhoodProfile;
-      if (side === "left") setLeftLive(report);
-      else setRightLive(report);
-    } finally {
-      setLoadingSide(null);
-    }
-  }
+  const left = getNeighborhood(leftId);
+  const right = getNeighborhood(rightId);
+  const winner = left.score === right.score ? "TIE" : left.score > right.score ? left.name : right.name;
 
   return (
-    <PlatformShell eyebrow="Compare" title="Two places, one civic read" body="Compare neighborhood strengths before choosing where to live, invest, report, or organize.">
-      <div className="grid gap-5 xl:grid-cols-[1fr_360px_1fr]">
-        <ComparePanel profile={left} selectedId={leftId} onSelect={(id) => { setLeftId(id); setLeftLive(null); }} query={leftQuery} onQuery={setLeftQuery} onAnalyze={() => analyzeSide("left")} loading={loadingSide === "left"} />
-        <section className="rounded-[28px] border border-[#da291c]/25 bg-[#da291c]/10 p-5 text-center">
-          <Scale className="mx-auto text-[#55c7d9]" size={30} aria-hidden="true" />
-          <p className="mt-5 text-sm font-bold uppercase tracking-[0.14em] text-white/48">Stronger overall</p>
-          <h2 className="mt-2 text-3xl font-black tracking-[-0.04em]">{winner}</h2>
-          <p className="mt-4 text-sm leading-6 text-white/58">The comparison uses the same livability categories from the Neighborhood Now scoring concept.</p>
-          <Link href="/assistant" className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-[#da291c] px-4 py-3 text-sm font-black text-white">
-            Ask Copilot why <ArrowRight size={17} aria-hidden="true" />
-          </Link>
+    <TerminalShell>
+      <PageHeader label="[ COMPARE // SIDE-BY-SIDE ]" title="Neighborhood comparison" body="Pick two Toronto places and compare score, radar DNA, verdicts, and risks." />
+      <div className="grid gap-4 xl:grid-cols-[1fr_280px_1fr]">
+        <ComparePanel profile={left} selectedId={leftId} onSelect={setLeftId} />
+        <section className="terminal-panel p-4 text-center">
+          <p className="terminal-label">[ RESULT ]</p>
+          <h2 className="mt-4 text-2xl font-bold uppercase text-[var(--color-accent)]">{winner}</h2>
+          <p className="mt-4 text-xs uppercase leading-6 tracking-wider text-[var(--color-text-dim)]">Strongest overall livability score from the current civic intelligence model.</p>
+          <Link href="/assistant" className="mt-6 inline-flex border border-[var(--color-accent)] px-4 py-2 text-xs font-bold uppercase tracking-widest text-[var(--color-accent)]">[ ASK WHY ]</Link>
         </section>
-        <ComparePanel profile={right} selectedId={rightId} onSelect={(id) => { setRightId(id); setRightLive(null); }} query={rightQuery} onQuery={setRightQuery} onAnalyze={() => analyzeSide("right")} loading={loadingSide === "right"} />
+        <ComparePanel profile={right} selectedId={rightId} onSelect={setRightId} />
       </div>
-    </PlatformShell>
+    </TerminalShell>
   );
 }
 
@@ -162,7 +130,7 @@ export function ParticipateWorkspace() {
   const [history, setHistory] = useState<string[]>([]);
   const [detail, setDetail] = useState<CivicProposal | null>(null);
   const [cards, setCards] = useState<CivicProposal[]>(proposals);
-  const [source, setSource] = useState("Demo fallback");
+  const [source, setSource] = useState("FALLBACK");
   const [loading, setLoading] = useState(false);
   const current = cards[index] ?? null;
 
@@ -177,222 +145,327 @@ export function ParticipateWorkspace() {
       if (!response.ok) throw new Error("Proposal lookup failed");
       const payload = (await response.json()) as { proposals: CivicProposal[]; source: string };
       setCards(payload.proposals.length ? payload.proposals : proposals);
-      setSource(payload.source);
+      setSource(payload.source.toUpperCase());
       setIndex(0);
     } catch {
       setCards(proposals);
-      setSource("Demo fallback");
+      setSource("FALLBACK");
     } finally {
       setLoading(false);
     }
   }
 
-  function move(decision: "acted" | "skipped") {
+  function move(decision: "ACT" | "SKIP") {
     if (!current) return;
-    setHistory((items) => [`${decision === "acted" ? "Acted on" : "Skipped"}: ${current.title}`, ...items].slice(0, 6));
+    setHistory((items) => [`[ ${decision} ] ${current.title}`, ...items].slice(0, 7));
     setIndex((value) => value + 1);
   }
 
-  function reset() {
-    setIndex(0);
-    setHistory([]);
-    setDetail(null);
-  }
-
   return (
-    <PlatformShell eyebrow="Participate" title="Shape what happens next" body="Review civic proposals as clear action cards. Act on the ones that match the neighborhood future you want.">
-      <div className="grid gap-5 xl:grid-cols-[1fr_360px]">
-        <section className="flex min-h-[620px] items-center justify-center rounded-[28px] border border-white/10 bg-[#111] p-5">
+    <TerminalShell>
+      <PageHeader label="[ PARTICIPATE // CIVICMATCH ]" title="Shape what happens next" body="Review civic proposals, act on the ones that matter, and keep a decision trail." />
+      <div className="grid gap-4 xl:grid-cols-[1fr_340px]">
+        <section className="terminal-panel flex min-h-[600px] items-center justify-center p-4">
           {loading ? (
-            <div className="text-center">
-              <Loader2 className="mx-auto animate-spin text-[#55c7d9]" size={42} aria-hidden="true" />
-              <p className="mt-4 text-sm font-bold text-white/58">Loading civic cards from Toronto Open Data...</p>
-            </div>
+            <p className="terminal-label">[ LOADING CIVIC CARDS<span className="cursor-blink">_</span> ]</p>
           ) : current ? (
-            <ProposalCard proposal={current} onAct={() => move("acted")} onSkip={() => move("skipped")} onDetail={() => setDetail(current)} />
+            <ProposalCard proposal={current} onAct={() => move("ACT")} onSkip={() => move("SKIP")} onDetail={() => setDetail(current)} />
           ) : (
             <div className="text-center">
-              <Check className="mx-auto text-[#55c7d9]" size={42} aria-hidden="true" />
-              <h2 className="mt-4 text-3xl font-black tracking-[-0.04em]">All caught up</h2>
-              <p className="mt-2 text-sm text-white/54">You reviewed every civic card in this demo deck.</p>
-              <button type="button" onClick={reset} className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-[#da291c] px-4 py-3 text-sm font-black">
-                <RotateCcw size={17} aria-hidden="true" /> Review again
-              </button>
+              <Check className="mx-auto text-[var(--color-accent)]" size={36} aria-hidden="true" />
+              <h2 className="mt-4 text-xl font-bold uppercase">[ ALL CAUGHT UP ]</h2>
+              <button type="button" onClick={() => { setIndex(0); setHistory([]); }} className="mt-5 border border-[var(--color-accent)] px-4 py-2 text-xs font-bold uppercase tracking-widest text-[var(--color-accent)]">[ REVIEW AGAIN ]</button>
             </div>
           )}
         </section>
-
         <aside className="space-y-4">
-          <div className="rounded-[28px] border border-white/10 bg-[#111] p-5">
-            <p className="font-utility text-[11px] font-bold uppercase tracking-[0.16em] text-white/45">Deck progress</p>
-            <h2 className="mt-2 text-4xl font-black tracking-[-0.05em]">{Math.min(index, cards.length)}/{cards.length}</h2>
-            <p className="mt-1 text-sm font-bold text-white/42">{source}</p>
-            <div className="mt-4 h-2 rounded-full bg-white/10">
-              <div className="h-2 rounded-full bg-[#da291c]" style={{ width: `${(Math.min(index, cards.length) / cards.length) * 100}%` }} />
-            </div>
-            <button type="button" onClick={refreshCards} className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-black text-white/74">
-              <RotateCcw size={17} aria-hidden="true" /> Refresh live cards
+          <section className="terminal-panel p-4">
+            <p className="terminal-label">[ DECK STATUS ]</p>
+            <p className="mt-3 text-4xl font-bold tabular-nums text-[var(--color-accent)]">{Math.min(index, cards.length)}/{cards.length}</p>
+            <p className="mt-1 text-[10px] uppercase tracking-widest text-[var(--color-text-mute)]">SOURCE: {source}</p>
+            <button type="button" onClick={refreshCards} className="mt-4 inline-flex w-full items-center justify-center gap-2 border border-[var(--color-border-strong)] px-3 py-2 text-xs font-bold uppercase tracking-widest text-[var(--color-text-dim)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]">
+              <RotateCcw size={14} aria-hidden="true" /> [ REFRESH ]
             </button>
-          </div>
-          <div className="rounded-[28px] border border-white/10 bg-[#111] p-5">
-            <h2 className="text-lg font-black tracking-[-0.02em]">Recent choices</h2>
-            <div className="mt-4 space-y-2">
-              {history.length ? history.map((item) => <p key={item} className="rounded-2xl border border-white/10 bg-white/5 p-3 text-sm text-white/62">{item}</p>) : <p className="text-sm leading-6 text-white/46">No card decisions yet.</p>}
+          </section>
+          <section className="terminal-panel p-4">
+            <p className="terminal-label">[ DECISION TRAIL ]</p>
+            <div className="mt-3 space-y-2">
+              {history.length ? history.map((item) => <p key={item} className="border border-[var(--color-border)] bg-black p-2 text-xs uppercase leading-5 text-[var(--color-text-dim)]">{item}</p>) : <p className="text-xs uppercase tracking-wider text-[var(--color-text-mute)]">NO DECISIONS YET.</p>}
             </div>
-          </div>
+          </section>
         </aside>
       </div>
-
       {detail ? <ProposalModal proposal={detail} onClose={() => setDetail(null)} /> : null}
-    </PlatformShell>
+    </TerminalShell>
   );
 }
 
-function PlatformShell({ eyebrow, title, body, children }: { eyebrow: string; title: string; body: string; children: React.ReactNode }) {
+function TerminalShell({ children }: { children: React.ReactNode }) {
+  return <main className="min-h-[calc(100vh-57px)] bg-black px-4 py-4 text-[var(--color-text)] lg:min-h-screen lg:px-6">{children}</main>;
+}
+
+function PageHeader({ label, title, body }: { label: string; title: string; body: string }) {
   return (
-    <main className="toronto-chat-canvas min-h-[calc(100vh-57px)] bg-black px-4 py-8 text-white lg:min-h-screen lg:px-8">
-      <div className="mx-auto max-w-7xl">
-        <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <p className="font-utility text-[11px] font-bold uppercase tracking-[0.18em] text-[#55c7d9]">{eyebrow}</p>
-            <h1 className="mt-2 text-4xl font-black tracking-[-0.04em] sm:text-5xl">{title}</h1>
-            <p className="mt-3 max-w-2xl text-base leading-7 text-white/56">{body}</p>
-          </div>
-          <Link href="/" className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-black text-white/76 transition hover:bg-white/10">
-            <Sparkles size={17} aria-hidden="true" /> Open Copilot
-          </Link>
-        </header>
-        {children}
-      </div>
-    </main>
+    <header className="terminal-panel mb-4 p-4">
+      <p className="terminal-label">{label}</p>
+      <h1 className="mt-2 text-2xl font-bold uppercase tracking-tight text-[var(--color-text)]">{title}</h1>
+      <p className="mt-2 max-w-3xl text-xs uppercase leading-6 tracking-wider text-[var(--color-text-dim)]">&gt; {body}</p>
+    </header>
   );
 }
 
-function ScoreDial({ score, label }: { score: number; label: string }) {
+function StatusBar({ status, address, score }: { status: string; address: string; score: number }) {
   return (
-    <div className="flex aspect-square flex-col items-center justify-center rounded-[28px] border border-white/10 bg-black/30" style={{ background: `conic-gradient(#da291c ${score * 3.6}deg, rgba(255,255,255,0.08) 0deg)` }}>
-      <div className="flex h-[74%] w-[74%] flex-col items-center justify-center rounded-full bg-[#111]">
-        <span className="text-6xl font-black tracking-[-0.08em]">{score}</span>
-        <span className="mt-2 max-w-[150px] text-center text-xs font-bold uppercase leading-5 text-white/46">{label}</span>
-      </div>
+    <div className="mb-4 flex items-center justify-between gap-3 border border-[var(--color-border)] bg-black px-3 py-2 text-[10px] uppercase tracking-widest text-[var(--color-text-mute)]">
+      <span><span className={status === "LIVE" ? "text-[var(--color-accent)]" : status === "FETCHING" ? "text-[var(--color-warn)]" : "text-[var(--color-bad)]"}>[ {status} ]</span> CITY COPILOT</span>
+      <span className="hidden truncate md:block">ADDR: <span className="text-[var(--color-text)]">{address}</span></span>
+      <span>SCORE: <span className="text-[var(--color-accent)]">{score}</span>/100</span>
     </div>
   );
 }
 
-function SignalTile({ label, value }: { label: string; value: string }) {
+function VerdictPills({ verdicts }: { verdicts: string[] }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-      <p className="text-xs font-bold uppercase tracking-[0.12em] text-white/38">{label}</p>
-      <p className="mt-2 text-lg font-black">{value}</p>
-    </div>
+    <section className="flex flex-wrap gap-2">
+      {verdicts.map((verdict) => <span key={verdict} className="border border-[var(--color-accent)] bg-[#041310] px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-[var(--color-accent)]">[ {verdict} ]</span>)}
+    </section>
   );
 }
 
-function ScoreBar({ axis, value, base }: { axis: ScoreAxis; value: number; base?: number }) {
+function ScoreReport({ profile, score, delta, dna }: { profile: NeighborhoodProfile; score: number; delta: number; dna: Record<ScoreAxis, number> }) {
   return (
-    <div>
-      <div className="flex items-center justify-between text-sm">
-        <span className="font-bold text-white/78">{axis}</span>
-        <span className="font-utility text-white/46">{value}/100{base && value !== base ? ` (+${value - base})` : ""}</span>
+    <section className="terminal-panel p-4">
+      <div className="flex items-center justify-between border-b border-[var(--color-border)] pb-2">
+        <p className="terminal-label">[ LIVABILITY SCORE ]</p>
+        <p className="text-[10px] uppercase tracking-widest text-[var(--color-text-mute)]">CITY_AVG 72 · RANK {profile.rank}</p>
       </div>
-      <div className="mt-2 h-3 rounded-full bg-white/8">
-        <div className="h-3 rounded-full bg-[#55c7d9]" style={{ width: `${value}%` }} />
+      <div className="mt-4 flex items-baseline gap-3">
+        <span className="text-6xl font-bold leading-none text-[var(--color-accent)] tabular-nums">{score}</span>
+        <span className="text-sm text-[var(--color-text-mute)]">/100</span>
+        {delta ? <span className={delta > 0 ? "text-[var(--color-accent)]" : "text-[var(--color-bad)]"}>{delta > 0 ? `+${delta}` : delta} PTS</span> : null}
       </div>
-    </div>
-  );
-}
-
-function InsightList({ title, items }: { title: string; items: string[] }) {
-  return (
-    <div className="mt-5">
-      <h3 className="text-sm font-black uppercase tracking-[0.12em] text-white/46">{title}</h3>
-      <div className="mt-3 space-y-2">
-        {items.map((item) => <p key={item} className="rounded-2xl border border-white/10 bg-white/5 p-3 text-sm leading-6 text-white/62">{item}</p>)}
-      </div>
-    </div>
-  );
-}
-
-function ComparePanel({
-  profile,
-  selectedId,
-  onSelect,
-  query,
-  onQuery,
-  onAnalyze,
-  loading
-}: {
-  profile: NeighborhoodProfile;
-  selectedId: string;
-  onSelect: (id: string) => void;
-  query: string;
-  onQuery: (value: string) => void;
-  onAnalyze: () => void;
-  loading: boolean;
-}) {
-  return (
-    <section className="rounded-[28px] border border-white/10 bg-[#111] p-5">
-      <select value={selectedId} onChange={(event) => onSelect(event.target.value)} className="h-12 w-full rounded-2xl border border-white/10 bg-black/40 px-4 text-sm font-bold text-white outline-none">
-        {neighborhoods.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-      </select>
-      <div className="mt-3 flex gap-2">
-        <input value={query} onChange={(event) => onQuery(event.target.value)} className="h-12 min-w-0 flex-1 rounded-2xl border border-white/10 bg-black/35 px-4 text-sm font-semibold text-white outline-none placeholder:text-white/28" placeholder="Search an address" />
-        <button type="button" onClick={onAnalyze} disabled={loading} className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#da291c] text-white disabled:opacity-60" aria-label="Analyze place">
-          {loading ? <Loader2 className="animate-spin" size={17} aria-hidden="true" /> : <Search size={17} aria-hidden="true" />}
-        </button>
-      </div>
-      <ScoreDial score={profile.score} label={profile.rank} />
-      <p className="mt-5 text-sm leading-6 text-white/58">{profile.summary}</p>
-      <div className="mt-5 space-y-3">
-        {scoreAxes.map((axis) => <ScoreBar key={axis} axis={axis} value={profile.axes[axis]} />)}
+      <p className="mt-4 text-xs uppercase leading-6 tracking-wider text-[var(--color-text-dim)]">{profile.summary}</p>
+      <div className="mt-4 space-y-2">
+        {dnaAxes.map((axis) => <MetricBar key={axis} label={axis} value={dna[axis]} base={profile.dna[axis]} />)}
       </div>
     </section>
   );
 }
 
-function LiveLeadList({ leads }: { leads: NonNullable<NeighborhoodProfile["liveLeads"]> }) {
+function MetricBar({ label, value, base }: { label: string; value: number; base?: number }) {
   return (
-    <div className="mt-5">
-      <h3 className="text-sm font-black uppercase tracking-[0.12em] text-white/46">Live sources</h3>
-      <div className="mt-3 space-y-2">
-        {leads.map((lead) => (
-          <a key={lead.title} href={lead.url} target="_blank" rel="noreferrer" className="block rounded-2xl border border-white/10 bg-white/5 p-3 transition hover:bg-white/10">
-            <span className="text-xs font-black uppercase tracking-[0.12em] text-[#55c7d9]">{lead.source}</span>
-            <span className="mt-1 block text-sm font-bold text-white/78">{lead.title}</span>
-            <span className="mt-1 block text-sm leading-6 text-white/48">{lead.description}</span>
-          </a>
-        ))}
+    <div>
+      <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest">
+        <span className="text-[var(--color-text-dim)]">{label}</span>
+        <span className="text-[var(--color-text)]">{value}/100{base !== undefined && base !== value ? ` (${value > base ? "+" : ""}${value - base})` : ""}</span>
+      </div>
+      <div className="mt-1 h-2 bg-[var(--color-surface-3)]">
+        <div className="h-2 bg-[var(--color-accent)]" style={{ width: `${value}%` }} />
       </div>
     </div>
   );
 }
 
-function ProposalCard({ proposal, onAct, onSkip, onDetail }: { proposal: CivicProposal; onAct: () => void; onSkip: () => void; onDetail: () => void }) {
+function ScoreRadar({ base, modified }: { base: Record<ScoreAxis, number>; modified: Record<ScoreAxis, number> | null }) {
+  const baseValues = dnaAxes.map((axis) => base[axis]);
+  const modifiedValues = modified ? dnaAxes.map((axis) => modified[axis]) : null;
+
   return (
-    <article className="w-full max-w-xl rounded-[32px] border border-white/12 bg-[#171717] p-6 shadow-[0_30px_90px_rgba(0,0,0,0.42)]">
-      <div className="flex items-start justify-between gap-4">
-        <span className="rounded-full bg-[#55c7d9]/12 px-3 py-1 text-xs font-black uppercase tracking-[0.12em] text-[#55c7d9]">{proposal.category}</span>
-        <span className="rounded-full border border-white/10 px-3 py-1 text-xs font-bold text-white/48">+{proposalScore(proposal)} civic impact</span>
+    <section className="terminal-panel p-4">
+      <div className="flex items-center justify-between border-b border-[var(--color-border)] pb-2">
+        <p className="terminal-label">[ NEIGHBORHOOD DNA // 9-AXIS FINGERPRINT ]</p>
+        <p className="text-[10px] uppercase tracking-widest text-[var(--color-text-mute)]">{modified ? "TEAL = NOW · AMBER = WHAT-IF" : "PERCENTILE 0-100"}</p>
       </div>
-      <h2 className="mt-6 text-4xl font-black leading-[0.98] tracking-[-0.05em]">{proposal.title}</h2>
-      <p className="mt-3 flex items-center gap-2 text-sm font-bold text-white/48"><MapPin size={15} aria-hidden="true" /> {proposal.area}</p>
-      <p className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4 text-base font-semibold leading-7 text-white/72">{proposal.summary}</p>
-      <p className="mt-4 text-sm leading-6 text-white/52">{proposal.civicAction}</p>
-      <div className="mt-6 grid gap-3 sm:grid-cols-3">
-        <ProposalButton onClick={onSkip} icon={ThumbsDown}>Skip</ProposalButton>
-        <ProposalButton onClick={onDetail} icon={ChevronRight}>Details</ProposalButton>
-        <ProposalButton onClick={onAct} icon={ThumbsUp} primary>Act</ProposalButton>
+      <div className="flex justify-center">
+        <svg viewBox={`0 0 ${radarSize} ${radarSize}`} width="100%" style={{ maxWidth: 340 }} role="img" aria-label="Nine axis livability radar">
+          {[0.25, 0.5, 0.75, 1].map((ring) => <circle key={ring} cx={radarCenter} cy={radarCenter} r={radarRadius * ring} fill="none" stroke="#1f1f1f" strokeDasharray={ring === 1 ? "0" : "2 3"} />)}
+          {dnaAxes.map((axis, index) => {
+            const p = pointFor(100, index);
+            const label = labelFor(index);
+            return (
+              <g key={axis}>
+                <line x1={radarCenter} y1={radarCenter} x2={p.x} y2={p.y} stroke="#1f1f1f" />
+                <text x={label.x} y={label.y} textAnchor="middle" alignmentBaseline="middle" fontSize="9" fill="#8a8a8a">{axis.slice(0, 3).toUpperCase()}</text>
+              </g>
+            );
+          })}
+          {modifiedValues ? <path d={pathFor(modifiedValues)} fill="#fbbf24" fillOpacity="0.12" stroke="#fbbf24" strokeWidth="1.2" strokeDasharray="3 2" /> : null}
+          <path d={pathFor(baseValues)} fill="#5eead4" fillOpacity="0.18" stroke="#5eead4" strokeWidth="1.5" />
+          {baseValues.map((value, index) => {
+            const p = pointFor(value, index);
+            return <circle key={dnaAxes[index]} cx={p.x} cy={p.y} r="3" fill="#5eead4" stroke="#000" />;
+          })}
+        </svg>
       </div>
-    </article>
+      <p className="border-t border-[var(--color-border)] pt-2 text-[10px] uppercase tracking-wider text-[var(--color-text-mute)]">[ DNA ] TOGGLE WHAT-IF SCENARIOS TO WATCH THE SHAPE MORPH.</p>
+    </section>
   );
 }
 
-function ProposalButton({ children, icon: Icon, onClick, primary = false }: { children: React.ReactNode; icon: React.ElementType; onClick: () => void; primary?: boolean }) {
+function pointFor(value: number, index: number, radius = radarRadius) {
+  const angle = (index / dnaAxes.length) * Math.PI * 2 - Math.PI / 2;
+  const normalized = Math.max(0, Math.min(100, value)) / 100;
+  return { x: radarCenter + Math.cos(angle) * radius * normalized, y: radarCenter + Math.sin(angle) * radius * normalized };
+}
+
+function labelFor(index: number) {
+  return pointFor(100, index, radarRadius + 15);
+}
+
+function pathFor(values: number[]) {
+  return `${values.map((value, index) => {
+    const p = pointFor(value, index);
+    return `${index === 0 ? "M" : "L"}${p.x.toFixed(2)} ${p.y.toFixed(2)}`;
+  }).join(" ")} Z`;
+}
+
+function CountsPanel({ profile }: { profile: NeighborhoodProfile }) {
+  const entries = Object.entries(profile.counts);
   return (
-    <button type="button" onClick={onClick} className={`inline-flex items-center justify-center gap-2 rounded-2xl border px-4 py-3 text-sm font-black transition ${primary ? "border-[#da291c] bg-[#da291c] text-white" : "border-white/10 bg-white/5 text-white/72 hover:bg-white/10"}`}>
-      <Icon size={17} aria-hidden="true" />
-      {children}
-    </button>
+    <section className="terminal-panel grid grid-cols-2 gap-x-4 gap-y-2 p-4 text-xs uppercase sm:grid-cols-4">
+      {entries.map(([label, value]) => <div key={label} className="flex justify-between gap-2"><span className="text-[var(--color-text-mute)]">{label}</span><span className="text-[var(--color-text)] tabular-nums">{value}</span></div>)}
+    </section>
+  );
+}
+
+function AnomalyPanel({ profile }: { profile: NeighborhoodProfile }) {
+  return (
+    <section className="terminal-panel p-4">
+      <p className="terminal-label">[ ANOMALIES // SIGNALS ]</p>
+      <div className="mt-3 space-y-2">{profile.anomalies.map((item) => <p key={item} className="border border-[var(--color-border)] bg-black p-2 text-xs uppercase leading-5 text-[var(--color-text-dim)]">&gt; {item}</p>)}</div>
+    </section>
+  );
+}
+
+function ForecastPanel({ profile }: { profile: NeighborhoodProfile }) {
+  const max = Math.max(...profile.forecast);
+  return (
+    <section className="terminal-panel p-4">
+      <p className="terminal-label">[ FORECAST // 6-MONTH ]</p>
+      <div className="mt-4 flex h-28 items-end gap-2">
+        {profile.forecast.map((value, index) => <div key={`${value}-${index}`} className="flex flex-1 flex-col items-center gap-2"><div className="w-full bg-[var(--color-accent)]" style={{ height: `${Math.max(12, (value / max) * 100)}%` }} /><span className="text-[10px] text-[var(--color-text-mute)]">{value}</span></div>)}
+      </div>
+    </section>
+  );
+}
+
+function WhatIfPanel({ active, onToggle, profile }: { active: string[]; onToggle: (id: string) => void; profile: NeighborhoodProfile }) {
+  return (
+    <section className="terminal-panel p-4">
+      <div className="flex justify-between border-b border-[var(--color-border)] pb-2">
+        <p className="terminal-label">[ WHAT-IF // STACK SCENARIOS ]</p>
+        <p className="text-[10px] uppercase tracking-widest text-[var(--color-text-mute)]">{active.length} ACTIVE</p>
+      </div>
+      <div className="mt-3 space-y-2">
+        {scenarios.map((scenario) => {
+          const on = active.includes(scenario.id);
+          const single = applyScenarios(profile, [scenario.id]);
+          return (
+            <button key={scenario.id} type="button" onClick={() => onToggle(scenario.id)} className={`w-full border p-3 text-left transition ${on ? "border-[var(--color-accent)] bg-[#041310]" : "border-[var(--color-border)] bg-black hover:border-[var(--color-border-strong)]"}`}>
+              <span className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[var(--color-text)]"><span className={on ? "text-[var(--color-accent)]" : "text-[var(--color-text-mute)]"}>{on ? "[X]" : `[${scenario.emoji}]`}</span>{scenario.name}<span className={single.delta >= 0 ? "ml-auto text-[var(--color-accent)]" : "ml-auto text-[var(--color-bad)]"}>{single.delta >= 0 ? "+" : ""}{single.delta}</span></span>
+              <span className="mt-2 block text-[10px] uppercase leading-5 tracking-wider text-[var(--color-text-mute)]">[ REASON ] {scenario.reason}</span>
+            </button>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function NeighborhoodChat({ profile }: { profile: NeighborhoodProfile }) {
+  const [messages, setMessages] = useState<Array<{ role: "user" | "assistant"; content: string; mode?: string }>>([]);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const lastMode = messages.findLast((message) => message.role === "assistant")?.mode;
+
+  async function send(event: React.FormEvent) {
+    event.preventDefault();
+    const question = input.trim();
+    if (!question || loading) return;
+    setInput("");
+    setMessages((items) => [...items, { role: "user", content: question }]);
+    setLoading(true);
+    try {
+      const response = await fetch("/api/copilot", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: `${question}\n\nNeighborhood context: ${profile.name}. Score ${profile.score}. Signals: ${profile.signals.join("; ")}` })
+      });
+      const payload = (await response.json()) as { answer?: string; mode?: string };
+      setMessages((items) => [...items, { role: "assistant", content: payload.answer ?? builtInNeighborhoodAnswer(profile, question), mode: payload.mode ?? "rules" }]);
+    } catch {
+      setMessages((items) => [...items, { role: "assistant", content: builtInNeighborhoodAnswer(profile, question), mode: "rules" }]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <section className="terminal-panel p-4">
+      <div className="flex items-center justify-between border-b border-[var(--color-border)] pb-2">
+        <p className="terminal-label">[ ASK // NEIGHBORHOOD AI ]</p>
+        <p className={lastMode === "ai" ? "text-[10px] uppercase tracking-widest text-[var(--color-accent)]" : "text-[10px] uppercase tracking-widest text-[var(--color-warn)]"}>{lastMode === "ai" ? "[ AI READY ]" : "[ BUILT-IN READY ]"}</p>
+      </div>
+      <div className="mt-3 max-h-72 space-y-2 overflow-y-auto pr-1">
+        {!messages.length ? <p className="text-xs uppercase leading-6 tracking-wider text-[var(--color-text-mute)]">[ SUGGESTIONS ]<br />&gt; IS THIS AREA GOOD FOR FAMILIES?<br />&gt; WHAT SHOULD CITY HALL FIX FIRST?<br />&gt; WHAT CHANGES THE SCORE FASTEST?</p> : null}
+        {messages.map((message, index) => <div key={`${message.role}-${index}`} className={`border p-2 text-xs uppercase leading-5 ${message.role === "user" ? "ml-auto max-w-[85%] border-[var(--color-accent)] bg-[#041310]" : "max-w-[92%] border-[var(--color-border)] bg-black"}`}><p className="mb-1 text-[10px] tracking-widest text-[var(--color-accent)]">{message.role === "user" ? "[ YOU ]" : "[ AI ]"}</p>{message.content}</div>)}
+        {loading ? <p className="terminal-label">[ AI THINKING<span className="cursor-blink">_</span> ]</p> : null}
+      </div>
+      <form onSubmit={send} className="mt-3 flex gap-2">
+        <span className="flex items-center text-xs text-[var(--color-accent)]">&gt;_</span>
+        <input value={input} onChange={(event) => setInput(event.target.value)} disabled={loading} placeholder="ASK ANYTHING..." className="min-w-0 flex-1 border border-[var(--color-border)] bg-black px-3 py-2 text-xs uppercase tracking-wide text-[var(--color-text)] placeholder:text-[var(--color-text-mute)] focus:border-[var(--color-accent)] focus:outline-none" />
+        <button type="submit" disabled={loading || !input.trim()} className="border border-[var(--color-accent)] bg-[var(--color-accent)] px-4 py-2 text-xs font-bold uppercase tracking-widest text-black disabled:border-[var(--color-border)] disabled:bg-[var(--color-surface-3)] disabled:text-[var(--color-text-mute)]">[ SEND ]</button>
+      </form>
+    </section>
+  );
+}
+
+function builtInNeighborhoodAnswer(profile: NeighborhoodProfile, question: string) {
+  if (question.toLowerCase().includes("famil")) return `${profile.name} is strongest for services and transit. Watch the risk list before recommending it for families.`;
+  if (question.toLowerCase().includes("fix")) return `Fix the highest-risk item first: ${profile.risks[0]}. That is the clearest civic action.`;
+  return `${profile.name} scores ${profile.score}/100. Main signal: ${profile.signals[0]}`;
+}
+
+function LiveSources({ profile }: { profile: NeighborhoodProfile }) {
+  if (!profile.liveLeads?.length) return null;
+  return (
+    <section className="terminal-panel p-4">
+      <p className="terminal-label">[ LIVE SOURCES ]</p>
+      <div className="mt-3 space-y-2">{profile.liveLeads.slice(0, 3).map((lead) => <a key={lead.title} href={lead.url} target="_blank" rel="noreferrer" className="block border border-[var(--color-border)] bg-black p-2 text-xs uppercase leading-5 text-[var(--color-text-dim)] hover:border-[var(--color-accent)]">{lead.title}</a>)}</div>
+    </section>
+  );
+}
+
+function ComparePanel({ profile, selectedId, onSelect }: { profile: NeighborhoodProfile; selectedId: string; onSelect: (id: string) => void }) {
+  return (
+    <section className="terminal-panel p-4">
+      <select value={selectedId} onChange={(event) => onSelect(event.target.value)} className="w-full border border-[var(--color-border)] bg-black px-3 py-2 text-xs font-bold uppercase tracking-widest text-[var(--color-text)]">
+        {neighborhoods.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+      </select>
+      <div className="mt-4 flex items-baseline gap-2"><span className="text-5xl font-bold text-[var(--color-accent)]">{profile.score}</span><span className="text-sm text-[var(--color-text-mute)]">/100</span><span className="ml-auto text-xs uppercase text-[var(--color-text-dim)]">{profile.rank}</span></div>
+      <p className="mt-3 text-xs uppercase leading-6 tracking-wider text-[var(--color-text-dim)]">{profile.summary}</p>
+      <ScoreRadar base={profile.dna} modified={null} />
+    </section>
+  );
+}
+
+function ProposalCard({ proposal, onAct, onSkip, onDetail }: { proposal: CivicProposal; onAct: () => void; onSkip: () => void; onDetail: () => void }) {
+  return (
+    <article className="w-full max-w-2xl border border-[var(--color-border)] bg-black p-5">
+      <div className="flex items-start justify-between gap-3">
+        <p className="terminal-label">[ {proposal.category} ]</p>
+        <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--color-warn)]">+{proposalScore(proposal)} IMPACT</p>
+      </div>
+      <h2 className="mt-5 text-3xl font-bold uppercase leading-tight tracking-tight text-[var(--color-text)]">{proposal.title}</h2>
+      <p className="mt-2 text-[10px] uppercase tracking-widest text-[var(--color-text-mute)]">AREA: {proposal.area} · DATE: {proposal.meetingDate}</p>
+      <p className="mt-5 border border-[var(--color-border)] bg-[var(--color-surface)] p-3 text-sm uppercase leading-7 tracking-wider text-[var(--color-text-dim)]">{proposal.summary}</p>
+      <p className="mt-3 text-xs uppercase leading-6 tracking-wider text-[var(--color-text-mute)]">&gt; {proposal.civicAction}</p>
+      <div className="mt-5 grid gap-2 sm:grid-cols-3">
+        <button type="button" onClick={onSkip} className="border border-[var(--color-border-strong)] px-3 py-2 text-xs font-bold uppercase tracking-widest text-[var(--color-text-dim)]">[ SKIP ]</button>
+        <button type="button" onClick={onDetail} className="border border-[var(--color-border-strong)] px-3 py-2 text-xs font-bold uppercase tracking-widest text-[var(--color-text)]">[ DETAILS ]</button>
+        <button type="button" onClick={onAct} className="border border-[var(--color-accent)] bg-[var(--color-accent)] px-3 py-2 text-xs font-bold uppercase tracking-widest text-black">[ ACT ]</button>
+      </div>
+    </article>
   );
 }
 
@@ -417,22 +490,18 @@ function ProposalModal({ proposal, onClose }: { proposal: CivicProposal; onClose
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/78 p-4 backdrop-blur">
-      <div className="max-h-[90vh] w-full max-w-2xl overflow-auto rounded-[28px] border border-white/10 bg-[#111] p-5 text-white">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-xs font-black uppercase tracking-[0.14em] text-[#55c7d9]">{proposal.category}</p>
-            <h2 className="mt-2 text-3xl font-black tracking-[-0.04em]">{proposal.title}</h2>
-          </div>
-          <button type="button" onClick={onClose} className="rounded-full border border-white/10 px-3 py-1 text-sm font-bold text-white/64">Close</button>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4">
+      <div className="max-h-[90vh] w-full max-w-2xl overflow-auto border border-[var(--color-border)] bg-[var(--color-surface)] p-5 text-[var(--color-text)]">
+        <div className="flex justify-between gap-4">
+          <div><p className="terminal-label">[ ACTION DETAILS ]</p><h2 className="mt-2 text-2xl font-bold uppercase">{proposal.title}</h2></div>
+          <button type="button" onClick={onClose} className="h-fit border border-[var(--color-border)] px-3 py-1 text-xs uppercase tracking-widest">[ CLOSE ]</button>
         </div>
-        <p className="mt-4 text-sm leading-6 text-white/58">{proposal.summary}</p>
-        <textarea readOnly value={proposal.emailTemplate} rows={7} className="mt-5 w-full rounded-2xl border border-white/10 bg-black/35 p-4 text-sm leading-6 text-white/72 outline-none" />
-        <div className="mt-5 flex flex-wrap gap-3">
-          <a href={mailto} className="inline-flex items-center gap-2 rounded-2xl bg-[#da291c] px-4 py-3 text-sm font-black"><Mail size={17} aria-hidden="true" /> Send email</a>
-          <button type="button" onClick={addCalendar} className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-black text-white/74"><CalendarPlus size={17} aria-hidden="true" /> Add calendar</button>
-          <button type="button" onClick={copyTemplate} className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-black text-white/74"><Clipboard size={17} aria-hidden="true" /> Copy note</button>
-          <a href={proposal.link} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-black text-white/74"><ExternalLink size={17} aria-hidden="true" /> View source</a>
+        <textarea readOnly value={proposal.emailTemplate} rows={8} className="mt-5 w-full border border-[var(--color-border)] bg-black p-3 text-xs uppercase leading-6 tracking-wider text-[var(--color-text-dim)] outline-none" />
+        <div className="mt-4 flex flex-wrap gap-2">
+          <a href={mailto} className="inline-flex items-center gap-2 border border-[var(--color-accent)] bg-[var(--color-accent)] px-3 py-2 text-xs font-bold uppercase tracking-widest text-black"><Mail size={14} />[ EMAIL ]</a>
+          <button type="button" onClick={addCalendar} className="inline-flex items-center gap-2 border border-[var(--color-border-strong)] px-3 py-2 text-xs font-bold uppercase tracking-widest text-[var(--color-text)]"><CalendarPlus size={14} />[ CALENDAR ]</button>
+          <button type="button" onClick={copyTemplate} className="inline-flex items-center gap-2 border border-[var(--color-border-strong)] px-3 py-2 text-xs font-bold uppercase tracking-widest text-[var(--color-text)]"><Clipboard size={14} />[ COPY ]</button>
+          <a href={proposal.link} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 border border-[var(--color-border-strong)] px-3 py-2 text-xs font-bold uppercase tracking-widest text-[var(--color-text)]"><ExternalLink size={14} />[ SOURCE ]</a>
         </div>
       </div>
     </div>

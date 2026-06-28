@@ -4,18 +4,30 @@
 
 :root {
   color-scheme: dark;
-  --bg: #000000;
-  --paper: #202020;
-  --surface: #171717;
-  --ink: #f4f4f4;
-  --muted: #a3a3a3;
-  --line: rgba(255, 255, 255, 0.12);
-  --blue: #0067a0;
-  --red: #da291c;
-  --cyan: #55c7d9;
-  --green: #b7d969;
-  --gold: #f5c542;
-  --shadow: 0 22px 70px rgba(0, 0, 0, 0.32);
+  --color-bg: #000000;
+  --color-surface: #0a0a0a;
+  --color-surface-2: #0f0f0f;
+  --color-surface-3: #161616;
+  --color-border: #1f1f1f;
+  --color-border-strong: #2a2a2a;
+  --color-text: #ededed;
+  --color-text-dim: #8a8a8a;
+  --color-text-mute: #555555;
+  --color-accent: #5eead4;
+  --color-accent-dim: #2dd4bf;
+  --color-warn: #fbbf24;
+  --color-bad: #f87171;
+  --bg: var(--color-bg);
+  --surface: var(--color-surface);
+  --ink: var(--color-text);
+  --muted: var(--color-text-dim);
+  --line: var(--color-border);
+  --blue: var(--color-accent);
+  --red: var(--color-bad);
+  --cyan: var(--color-accent);
+  --green: var(--color-accent-dim);
+  --gold: var(--color-warn);
+  --shadow: none;
 }
 
 html {
@@ -23,71 +35,114 @@ html {
 }
 
 body {
-  background: #000;
-  color: var(--ink);
-  font-family: "Inter", "Avenir Next", "Segoe UI", Arial, sans-serif;
+  min-height: 100%;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Monaco, monospace;
+  font-feature-settings: "calt" 1, "liga" 1, "ss01" 1;
+  letter-spacing: 0.01em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 h1,
 h2,
 h3,
-.font-display {
-  font-family: "Space Grotesk", "Avenir Next", "Segoe UI", Arial, sans-serif;
-}
-
-.font-utility {
-  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+.font-display,
+.font-utility,
+button,
+input,
+select,
+textarea {
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Monaco, monospace;
 }
 
 * {
-  border-color: var(--line);
+  border-color: var(--color-border);
+}
+
+*:not(.rounded-full) {
+  border-radius: 0 !important;
 }
 
 *:focus-visible {
-  outline: 3px solid rgba(85, 199, 217, 0.42);
-  outline-offset: 3px;
+  outline: 1px solid var(--color-accent);
+  outline-offset: 2px;
 }
 
 ::selection {
-  background: rgba(85, 199, 217, 0.28);
+  background: var(--color-accent);
+  color: #000;
 }
 
-.city-card {
-  border: 1px solid var(--line);
-  border-radius: 24px;
-  background: #151515;
-  box-shadow: var(--shadow);
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
 }
 
-.chat-shell {
+::-webkit-scrollbar-track {
   background: #000;
 }
 
-.toronto-chat-canvas {
-  background:
-    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-    radial-gradient(circle at 18% 22%, rgba(218, 41, 28, 0.18), transparent 18rem),
-    radial-gradient(circle at 82% 18%, rgba(0, 103, 160, 0.18), transparent 20rem),
-    linear-gradient(180deg, #020202 0%, #000 100%);
-  background-size: 42px 42px, 42px 42px, 100% 100%, 100% 100%, 100% 100%;
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
 }
 
-.routing-rail {
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-border-strong);
+}
+
+.city-card,
+.chat-shell,
+.toronto-chat-canvas {
+  background: var(--color-bg);
+  box-shadow: none;
+}
+
+.city-card {
+  border: 1px solid var(--color-border);
+}
+
+.routing-rail,
+.city-map {
   background:
-    linear-gradient(90deg, rgba(255, 255, 255, 0.08) 1px, transparent 1px),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.08) 1px, transparent 1px),
-    linear-gradient(180deg, #111 0%, #151515 48%, #061f31 100%);
+    linear-gradient(90deg, rgba(94, 234, 212, 0.05) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(94, 234, 212, 0.04) 1px, transparent 1px),
+    #050505;
   background-size: 28px 28px, 28px 28px, 100% 100%;
 }
 
-.city-map {
-  background:
-    linear-gradient(90deg, rgba(255, 255, 255, 0.14) 1px, transparent 1px),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.14) 1px, transparent 1px),
-    radial-gradient(circle at 24% 32%, rgba(85, 199, 217, 0.5), transparent 8rem),
-    radial-gradient(circle at 70% 54%, rgba(183, 217, 105, 0.35), transparent 9rem);
-  background-size: 38px 38px, 38px 38px, 100% 100%, 100% 100%;
+.terminal-panel {
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.terminal-panel-2 {
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-2);
+}
+
+.terminal-label {
+  color: var(--color-accent);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+@keyframes blink {
+  0%,
+  50% {
+    opacity: 1;
+  }
+  51%,
+  100% {
+    opacity: 0;
+  }
+}
+
+.cursor-blink {
+  animation: blink 1s steps(1) infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {

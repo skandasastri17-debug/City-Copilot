@@ -12,6 +12,7 @@ const requestSchema = z.object({
 const NEMOTRON_MODEL = "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning-bf16";
 const NVIDIA_BASE_URL = "https://integrate.api.nvidia.com/v1";
 const OPENAI_BASE_URL = "https://api.openai.com/v1";
+const DEFAULT_VULTR_MODEL = "minimax-m2.7";
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
@@ -24,18 +25,9 @@ export async function POST(request: Request) {
   const query = parsed.data.query;
   const classification = classifyRequest(query);
   const liveData = await searchLiveData({ query, category: classification.category, limit: 5 });
-  const model = parsed.data.model || process.env.AI_MODEL || process.env.NVIDIA_MODEL || process.env.OPENAI_MODEL || NEMOTRON_MODEL;
-  const provider = model.toLowerCase().includes("nemotron") ? "nvidia" : "openai";
-  const apiKey =
-    provider === "nvidia"
-      ? process.env.NVIDIA_API_KEY || process.env.AI_API_KEY || process.env.OPENAI_API_KEY || parsed.data.openaiKey
-      : process.env.OPENAI_API_KEY || process.env.AI_API_KEY || parsed.data.openaiKey;
-  const baseUrl =
-    process.env.AI_BASE_URL ||
-    process.env.NVIDIA_API_BASE_URL ||
-    (provider === "nvidia" ? NVIDIA_BASE_URL : OPENAI_BASE_URL);
+  const config = resolveProvider(parsed.data.model, parsed.data.openaiKey);
 
-  if (!apiKey) {
+  if (!config) {
     return NextResponse.json({
       mode: "rules",
       answer: fallbackAnswer(query, classification.report.department, classification.report.nextStep),
@@ -45,14 +37,14 @@ export async function POST(request: Request) {
   }
 
   try {
-    const response = await fetch(`${baseUrl}/chat/completions`, {
+    const response = await fetch(`${config.baseUrl}/chat/completions`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`
+        Authorization: `Bearer ${config.apiKey}`
       },
       body: JSON.stringify({
-        model,
+        model: config.model,
         temperature: 0.2,
         max_tokens: 220,
         messages: [
@@ -85,7 +77,7 @@ export async function POST(request: Request) {
 
     if (!response.ok) {
       const message = await response.text().catch(() => "");
-      throw new Error(`${provider} returned ${response.status}: ${message.slice(0, 180)}`);
+      throw new Error(`${config.provider} returned ${response.status}: ${message.slice(0, 180)}`);
     }
 
     const payload = (await response.json()) as {
@@ -94,24 +86,64 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       mode: "ai",
-      provider,
-      model,
+      provider: config.provider,
+      model: config.model,
       answer: payload.choices?.[0]?.message?.content ?? fallbackAnswer(query, classification.report.department, classification.report.nextStep),
       classification,
       liveData
     });
-  } catch (error) {
+  } catch {
     return NextResponse.json({
       mode: "rules",
-      provider,
-      model,
+      provider: config.provider,
+      model: config.model,
       answer: fallbackAnswer(query, classification.report.department, classification.report.nextStep),
       classification,
       liveData,
-      warning: `${provider} provider unavailable; returned the reliable built-in answer.`,
-      diagnostic: error instanceof Error ? error.message : "Unknown provider error"
+      warning: "AI provider unavailable; returned the reliable built-in answer."
     });
   }
+}
+
+function resolveProvider(requestedModel?: string, clientKey?: string) {
+  const vultrKey = process.env.VULTR_API_KEY;
+  const vultrBase = process.env.VULTR_API_BASE_URL;
+  if (vultrKey && vultrBase) {
+    return {
+      provider: "vultr",
+      apiKey: vultrKey,
+      baseUrl: stripSlash(vultrBase),
+      model: requestedModel || process.env.VULTR_MODEL || DEFAULT_VULTR_MODEL
+    };
+  }
+
+  const aiKey = process.env.AI_API_KEY || process.env.NVIDIA_API_KEY;
+  const aiBase = process.env.AI_BASE_URL || process.env.NVIDIA_API_BASE_URL;
+  if (aiKey && aiBase) {
+    const model = requestedModel || process.env.AI_MODEL || process.env.NVIDIA_MODEL || NEMOTRON_MODEL;
+    return {
+      provider: model.toLowerCase().includes("nemotron") ? "nvidia" : "compatible",
+      apiKey: aiKey,
+      baseUrl: stripSlash(aiBase),
+      model
+    };
+  }
+
+  const openAiKey = process.env.OPENAI_API_KEY || clientKey;
+  if (openAiKey) {
+    return {
+      provider: "openai",
+      apiKey: openAiKey,
+      baseUrl: OPENAI_BASE_URL,
+      model: requestedModel || process.env.OPENAI_MODEL || "gpt-4.1-mini"
+    };
+  }
+
+  return null;
+}
+
+function stripSlash(value: string) {
+  return value.replace(/\/+$/, "");
 }
 
 function fallbackAnswer(_query: string, department: string, nextStep: string) {

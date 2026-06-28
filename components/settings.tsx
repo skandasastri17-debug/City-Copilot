@@ -23,7 +23,7 @@ const STORAGE_KEY = "city-copilot-settings";
 
 const defaultSettings: ApiSettings = {
   openaiKey: "",
-  openaiModel: "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning-bf16",
+  openaiModel: "minimax-m2.7",
   torontoToken: "",
   mapKey: "",
   supabaseUrl: "",
@@ -84,9 +84,9 @@ export function SettingsWorkspace() {
 
   async function copyEnvTemplate() {
     const template = [
-      `NVIDIA_API_KEY=${settings.openaiKey || "replace-with-your-nvidia-key"}`,
-      `AI_MODEL=${settings.openaiModel}`,
-      `AI_BASE_URL=https://integrate.api.nvidia.com/v1`,
+      `VULTR_API_KEY=${settings.openaiKey || "replace-with-your-vultr-key"}`,
+      `VULTR_MODEL=${settings.openaiModel || "minimax-m2.7"}`,
+      `VULTR_API_BASE_URL=https://your-vultr-openai-compatible-endpoint/v1`,
       `TORONTO_OPEN_DATA_APP_TOKEN=${settings.torontoToken || "optional"}`,
       `NEXT_PUBLIC_MAP_KEY=${settings.mapKey || "optional"}`,
       `NEXT_PUBLIC_SUPABASE_URL=${settings.supabaseUrl || "optional"}`,
@@ -136,10 +136,10 @@ export function SettingsWorkspace() {
             </div>
 
             <div className="grid gap-5 p-6">
-              <SettingsGroup icon={KeyRound} title="AI provider" description="Connect an OpenAI-compatible provider for short Copilot answers.">
-                <SettingsInput label="AI API key" value={settings.openaiKey} type={showSecrets ? "text" : "password"} placeholder="NVIDIA, OpenAI, or compatible key" onChange={(value) => update("openaiKey", value)} />
+              <SettingsGroup icon={KeyRound} title="AI provider" description="Vultr is primary. The app falls back safely if the provider is unavailable.">
+                <SettingsInput label="Vultr API key" value={settings.openaiKey} type={showSecrets ? "text" : "password"} placeholder="Paste Vultr key for local testing" onChange={(value) => update("openaiKey", value)} />
                 <SettingsSelect label="Model" value={settings.openaiModel} onChange={(value) => update("openaiModel", value)}>
-                  <option value="nvidia/nemotron-3-nano-omni-30b-a3b-reasoning-bf16">Nemotron-3-Nano-Omni-30B-A3B-Reasoning-BF16</option>
+                  <option value="minimax-m2.7">minimax-m2.7</option>
                   <option value="gpt-4.1-mini">gpt-4.1-mini</option>
                   <option value="gpt-4.1">gpt-4.1</option>
                   <option value="gpt-4o-mini">gpt-4o-mini</option>

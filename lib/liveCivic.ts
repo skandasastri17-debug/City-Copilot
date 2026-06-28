@@ -1,4 +1,4 @@
-import { hashString, nearestNeighborhood, proposals, scoreAxes, type CivicProposal, type NeighborhoodProfile, type ScoreAxis } from "@/lib/civicPlatform";
+import { hashString, legacyToDna, nearestNeighborhood, proposals, scoreAxes, scoreFromDna, type CivicProposal, type LegacyAxis, type NeighborhoodProfile } from "@/lib/civicPlatform";
 
 type GeocodeResult = {
   displayName: string;
@@ -134,9 +134,10 @@ function synthesizeProfile(address: string, fallback: NeighborhoodProfile, geoco
       ...next,
       [axis]: clamp(fallback.axes[axis] + ((seed >> (index + 1)) % 15) - 7 + leadBoost(axis, leads))
     }),
-    {} as Record<ScoreAxis, number>
+    {} as Record<LegacyAxis, number>
   );
-  const score = Math.round(scoreAxes.reduce((total, axis) => total + axes[axis], 0) / scoreAxes.length);
+  const dna = legacyToDna(axes, seed);
+  const score = scoreFromDna(dna);
 
   return {
     ...fallback,
@@ -147,6 +148,7 @@ function synthesizeProfile(address: string, fallback: NeighborhoodProfile, geoco
     rank: percentileLabel(score),
     trend: score >= fallback.score + 3 ? "Improving" : score <= fallback.score - 3 ? "Watch" : "Stable",
     axes,
+    dna,
     summary: `Live civic read for ${shortName(address, geocode.displayName)} using geocoding plus Toronto Open Data leads. ${fallback.summary}`,
     signals: [
       `Matched location at ${geocode.lat.toFixed(4)}, ${geocode.lon.toFixed(4)}.`,
@@ -154,14 +156,19 @@ function synthesizeProfile(address: string, fallback: NeighborhoodProfile, geoco
       ...fallback.signals.slice(0, 1)
     ],
     forecast: fallback.forecast.map((value, index) => clamp(Math.round((value + score) / 2 + index))),
+    counts: {
+      ...fallback.counts,
+      permits: clamp(fallback.counts.permits + ((seed >> 3) % 8) - 3),
+      complaints: clamp(fallback.counts.complaints + ((seed >> 4) % 8) - 3)
+    },
     coords: { lat: geocode.lat, lon: geocode.lon },
     source: "Live",
     liveLeads: leads
   };
 }
 
-function leadBoost(axis: ScoreAxis, leads: OpenDataLead[]) {
-  const terms: Record<ScoreAxis, string[]> = {
+function leadBoost(axis: LegacyAxis, leads: OpenDataLead[]) {
+  const terms: Record<LegacyAxis, string[]> = {
     Transit: ["transit", "ttc", "traffic", "cycling"],
     Services: ["service", "library", "community", "program"],
     Housing: ["housing", "shelter", "development"],
